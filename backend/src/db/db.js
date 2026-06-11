@@ -1,4 +1,6 @@
 const mysql = require("mysql2/promise");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 // create pool
@@ -12,4 +14,32 @@ const pool = mysql.createPool({
     connectionLimit: 10
 });
 
+// read and execute schema
+async function createSchema() {
+    const schemaPath = path.join(__dirname, "../../../database/schema.sql");
+    const schema = fs.readFileSync(schemaPath, "utf8");
+    
+    // Split by semicolon and execute each statement
+    const statements = schema
+        .split(";")
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt.length > 0);
+    
+    for (const statement of statements) {
+        if (!statement.toUpperCase().includes("INSERT")) {
+            try {
+                await pool.query(statement);
+            } catch (err) {
+                // ignore 'table already exists' errors and continue
+                if (err && err.code === 'ER_TABLE_EXISTS_ERROR') {
+                    continue;
+                }
+                // rethrow other errors
+                throw err;
+            }
+        }
+    }
+}
+
 module.exports = pool;
+module.exports.createSchema = createSchema;
