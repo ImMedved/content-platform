@@ -10,9 +10,20 @@ app.use(cors());
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const postRoutes = require("./routes/postRoutes");
+const followRoutes = require("./routes/followRoutes");
+const feedRoutes = require("./routes/feedRoutes");
+
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/follow", followRoutes);
+app.use("/api/v1/feed", feedRoutes);
+// legacy/non-versioned routes for tests and compatibility
+app.use("/api/posts", postRoutes);
+app.use("/api/follow", followRoutes);
+app.use("/api/feed", feedRoutes);
 // support singular path used by tests
 app.use("/api/user", userRoutes);
 

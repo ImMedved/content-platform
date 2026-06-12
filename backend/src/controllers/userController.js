@@ -10,6 +10,7 @@ async function getMe(req, res) {
     const user = await userRepo.findById(req.user.userId);
 
     res.json({
+        userId: user.id,
         data: user
     });
 }

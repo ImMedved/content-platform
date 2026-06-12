@@ -66,3 +66,13 @@ CREATE TABLE post_access (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES post(id)
 );
+
+CREATE TABLE follow (
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id),
+    FOREIGN KEY (follower_id) REFERENCES user(id),
+    FOREIGN KEY (following_id) REFERENCES user(id),
+    CHECK (follower_id != following_id)
+);

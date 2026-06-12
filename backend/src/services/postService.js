@@ -2,11 +2,13 @@
 Post service
 - create post
 - fetch post
+- invalidate feed cache
 */
 
 const postRepo = require("../repositories/postRepository");
+const followRepo = require("../repositories/followRepository");
+const feedService = require("./feedService");
 
-// create post
 async function createPost(userId, data) {
     const { title, description, content, access } = data;
 
@@ -18,15 +20,19 @@ async function createPost(userId, data) {
 
     await postRepo.setAccess(postId, access || { type: "free" });
 
+    const followers = await followRepo.getFollowers(userId);
+
+    for (const followerId of followers) {
+        await feedService.invalidateFeed(followerId);
+    }
+
     return { postId };
 }
 
-// get post
 async function getPost(id) {
     return await postRepo.getPostById(id);
 }
 
-// list
 async function listPosts() {
     return await postRepo.listPosts();
 }
