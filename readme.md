@@ -20,8 +20,15 @@ A mock payment system for paid content and site moderation (deleting posts, comm
 ## Frontend
 
 ## Backend
+Backend designed using Hexagonal Architecture principles with clear separation between controllers, services, and data access layers.
 
 ## Database
 
 # Contracts
+
+# Patterns
+Domains: auth, user, post, payment ...
+Service Layer, Rep pattern, express middleware, dto factory
+Redis for sessions and feed cache
+
 

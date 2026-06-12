@@ -1,5 +1,7 @@
 backend/node_modules/
 backend/.env
+frontend/content-platform-ui/node_modules/
+frontend/content-platform-ui/.env
 dist/
 build/
 logs/
