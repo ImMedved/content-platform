@@ -25,7 +25,18 @@ async function findByEmail(email) {
     return rows[0];
 }
 
+// find by id
+async function findById(id) {
+    const [rows] = await db.query(
+        "SELECT id, username, email, display_name FROM user WHERE id = ?",
+        [id]
+    );
+
+    return rows[0];
+}
+
 module.exports = {
     createUser,
-    findByEmail
+    findByEmail,
+    findById
 };

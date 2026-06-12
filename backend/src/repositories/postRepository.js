@@ -1,0 +1,76 @@
+/*
+Post repository
+- create post
+- get post
+- list posts
+*/
+
+const db = require("../db/db");
+
+// create post
+async function createPost(authorId, title, description) {
+    const [res] = await db.query(
+        "INSERT INTO post (author_id, title, description) VALUES (?, ?, ?)",
+        [authorId, title, description]
+    );
+
+    return res.insertId;
+}
+
+// add content
+async function addContent(postId, content) {
+    for (const item of content) {
+        await db.query(
+            "INSERT INTO post_content (post_id, content_type, content_url, text_content) VALUES (?, ?, ?, ?)",
+            [
+                postId,
+                item.type,
+                item.type === "text" ? null : item.value,
+                item.type === "text" ? item.value : null
+            ]
+        );
+    }
+}
+
+// set access
+async function setAccess(postId, access) {
+    await db.query(
+        "INSERT INTO post_access (post_id, access_type, price) VALUES (?, ?, ?)",
+        [postId, access.type, access.price || 0]
+    );
+}
+
+// get post
+async function getPostById(id) {
+    const [[post]] = await db.query("SELECT * FROM post WHERE id = ?", [id]);
+
+    const [content] = await db.query(
+        "SELECT * FROM post_content WHERE post_id = ?",
+        [id]
+    );
+
+    const [[access]] = await db.query(
+        "SELECT * FROM post_access WHERE post_id = ?",
+        [id]
+    );
+
+    return { post, content, access };
+}
+
+// list posts
+async function listPosts(limit = 20) {
+    const [rows] = await db.query(
+        "SELECT * FROM post ORDER BY created_at DESC LIMIT ?",
+        [limit]
+    );
+
+    return rows;
+}
+
+module.exports = {
+    createPost,
+    addContent,
+    setAccess,
+    getPostById,
+    listPosts
+};
