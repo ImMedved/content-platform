@@ -7,26 +7,27 @@ Integration content flow
 
 const request = require("supertest");
 const app = require("../../app");
+const { apiPath, responseToken } = require("../helpers/api");
 
 describe("Content flow", () => {
     it("should create and read post", async () => {
-        await request(app).post("/api/auth/register").send({
+        await request(app).post(apiPath("/auth/register")).send({
             username: "content_user",
             email: "content_user@test.com",
             password: "123456"
         });
 
         const loginRes = await request(app)
-            .post("/api/auth/login")
+            .post(apiPath("/auth/login"))
             .send({
                 email: "content_user@test.com",
                 password: "123456"
             });
 
-        const token = loginRes.body.token || loginRes.body.data?.token;
+        const token = responseToken(loginRes);
 
         const createRes = await request(app)
-            .post("/api/posts")
+            .post(apiPath("/posts"))
             .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "integration post",
@@ -40,13 +41,13 @@ describe("Content flow", () => {
         const postId = createRes.body.data.postId;
 
         const getRes = await request(app)
-            .get(`/api/posts/${postId}`);
+            .get(apiPath(`/posts/${postId}`));
 
         expect(getRes.statusCode).toBe(200);
         expect(getRes.body.data.post.title).toBe("integration post");
 
         const listRes = await request(app)
-            .get("/api/posts");
+            .get(apiPath("/posts"));
 
         expect(listRes.statusCode).toBe(200);
         expect(Array.isArray(listRes.body.data)).toBe(true);

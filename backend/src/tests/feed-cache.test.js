@@ -6,62 +6,58 @@ Feed cache tests
 const request = require("supertest");
 const app = require("../app");
 const redisClient = require("../config/redis");
+const { apiPath, responseData, responseToken } = require("./helpers/api");
 
 let token1;
 let token2;
 
-beforeAll(async () => {
-    if (!redisClient.isOpen) {
-        await redisClient.connect();
-    }
-
-    await redisClient.flushAll();
-
-    await request(app).post("/api/auth/register").send({
+beforeEach(async () => {
+    await request(app).post(apiPath("/auth/register")).send({
         username: "cache_u1",
         email: "cache_u1@test.com",
         password: "123456"
     });
 
-    const login1 = await request(app).post("/api/auth/login").send({
+    const login1 = await request(app).post(apiPath("/auth/login")).send({
         email: "cache_u1@test.com",
         password: "123456"
     });
 
-    token1 = login1.body.token || login1.body.data?.token;
+    token1 = responseToken(login1);
 
-    await request(app).post("/api/auth/register").send({
+    await request(app).post(apiPath("/auth/register")).send({
         username: "cache_u2",
         email: "cache_u2@test.com",
         password: "123456"
     });
 
-    const login2 = await request(app).post("/api/auth/login").send({
+    const login2 = await request(app).post(apiPath("/auth/login")).send({
         email: "cache_u2@test.com",
         password: "123456"
     });
 
-    token2 = login2.body.token || login2.body.data?.token;
+    token2 = responseToken(login2);
+
+    const authorRes = await request(app)
+        .get(apiPath("/users/me"))
+        .set("Authorization", `Bearer ${token2}`);
+    const authorId = responseData(authorRes).id;
 
     await request(app)
-        .post("/api/follow/2")
+        .post(apiPath(`/follow/${authorId}`))
         .set("Authorization", `Bearer ${token1}`);
-});
-
-afterAll(async () => {
-    await redisClient.flushAll();
 });
 
 describe("Feed cache integration", () => {
     it("should return feed and use redis without errors", async () => {
         const first = await request(app)
-            .get("/api/feed")
+            .get(apiPath("/feed"))
             .set("Authorization", `Bearer ${token1}`);
 
         expect(first.statusCode).toBe(200);
 
         const second = await request(app)
-            .get("/api/feed")
+            .get(apiPath("/feed"))
             .set("Authorization", `Bearer ${token1}`);
 
         expect(second.statusCode).toBe(200);
@@ -70,7 +66,7 @@ describe("Feed cache integration", () => {
 
     it("should invalidate feed cache after new post", async () => {
         await request(app)
-            .post("/api/posts")
+            .post(apiPath("/posts"))
             .set("Authorization", `Bearer ${token2}`)
             .send({
                 title: "cached post",
@@ -80,7 +76,7 @@ describe("Feed cache integration", () => {
             });
 
         const res = await request(app)
-            .get("/api/feed")
+            .get(apiPath("/feed"))
             .set("Authorization", `Bearer ${token1}`);
 
         expect(res.statusCode).toBe(200);

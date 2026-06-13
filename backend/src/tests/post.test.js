@@ -4,29 +4,30 @@ Post tests
 
 const request = require("supertest");
 const app = require("../app");
+const { apiPath, responseToken } = require("./helpers/api");
 
 let token;
 
-beforeAll(async () => {
-    await request(app).post("/api/auth/register").send({
+beforeEach(async () => {
+    await request(app).post(apiPath("/auth/register")).send({
         username: "postuser",
         email: "post@test.com",
         password: "123456"
     });
 
-    const res = await request(app).post("/api/auth/login").send({
+    const res = await request(app).post(apiPath("/auth/login")).send({
         email: "post@test.com",
         password: "123456"
     });
 
-    token = res.body.token;
+    token = responseToken(res);
 });
 
 describe("Post API", () => {
 
     it("should create post", async () => {
         const res = await request(app)
-            .post("/api/v1/posts")
+            .post(apiPath("/posts"))
             .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "test post",
@@ -43,7 +44,7 @@ describe("Post API", () => {
 
     it("should list posts", async () => {
         const res = await request(app)
-            .get("/api/v1/posts");
+            .get(apiPath("/posts"));
 
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(res.body.data)).toBe(true);

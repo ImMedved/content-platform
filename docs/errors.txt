@@ -1,0 +1,300 @@
+PS C:\Users\Akku\Documents\content-platform\backend> npm run test
+
+> backend@1.0.0 test
+> cross-env NODE_ENV=test jest --runInBand
+
+ FAIL  src/tests/post.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● Post API › should create post
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      38 |             });
+      39 |
+    > 40 |         expect(res.statusCode).toBe(200);
+         |                                ^
+      41 |         expect(res.body.data.postId).toBeDefined();
+      42 |     });
+      43 |
+
+      at Object.toBe (src/tests/post.test.js:40:32)
+
+ FAIL  src/tests/comment.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌘ override existing { override: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● Comment API › should create comment
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      44 |             });
+      45 |
+    > 46 |         expect(res.statusCode).toBe(200);
+         |                                ^
+      47 |     });
+      48 |
+      49 |     it("should get comments", async () => {
+
+      at Object.toBe (src/tests/comment.test.js:46:32)
+
+ FAIL  src/tests/feed-cache.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● Feed cache integration › should invalidate feed cache after new post
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      85 |
+      86 |         expect(res.statusCode).toBe(200);
+    > 87 |         expect(res.body.data.length).toBeGreaterThan(0);
+         |                                      ^
+      88 |     });
+      89 | });
+
+      at Object.toBeGreaterThan (src/tests/feed-cache.test.js:87:38)
+
+
+  ● Test suite failed to run
+
+    The client is closed
+
+      50 |
+      51 | afterAll(async () => {
+    > 52 |     await redisClient.flushAll();
+         |                       ^
+      53 | });
+      54 |
+      55 | describe("Feed cache integration", () => {
+
+      at node_modules/@redis/client/lib/client/index.ts:1241:33
+      at trace (node_modules/@redis/client/lib/client/tracing.ts:144:10)
+      at Class.sendCommand (node_modules/@redis/client/lib/client/index.ts:1238:17)
+      at fn (node_modules/@redis/client/lib/client/index.ts:1192:36)
+      at Class._executeCommand (node_modules/@redis/client/lib/client/index.ts:1197:27)
+      at Class.flushAll (node_modules/@redis/client/lib/client/index.ts:283:25)
+      at Object.flushAll (src/tests/feed-cache.test.js:52:23)
+
+ FAIL  src/tests/feed.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ◈ secrets for agents [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● Feed API › should return feed posts
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      61 |
+      62 |         expect(res.statusCode).toBe(200);
+    > 63 |         expect(res.body.data.length).toBeGreaterThan(0);
+         |                                      ^
+      64 |     });
+      65 |
+      66 | });
+
+      at Object.toBeGreaterThan (src/tests/feed.test.js:63:38)
+
+ FAIL  src/tests/user.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ◈ secrets for agents [www.dotenvx.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● User API › should return current user
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      31 |             .set("Authorization", `Bearer ${token}`);
+      32 |
+    > 33 |         expect(res.statusCode).toBe(200);
+         |                                ^
+      34 |         expect(res.body.userId).toBeDefined();
+      35 |     });
+      36 |
+
+      at Object.toBe (src/tests/user.test.js:33:32)
+
+ FAIL  src/tests/auth.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+  ● Auth API › should login user
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      33 |             });
+      34 |
+    > 35 |         expect(res.statusCode).toBe(200);
+         |                                ^
+      36 |         expect(res.body.token).toBeDefined();
+      37 |     });
+      38 |
+
+      at Object.toBe (src/tests/auth.test.js:35:32)
+
+ PASS  src/tests/integration/feed-flow.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+ PASS  src/tests/integration/content-flow.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+ PASS  src/tests/integration/auth-flow.test.js
+  ● Console
+
+    console.log
+      ◇ injected env (8) from .env.test // tip: ⌘ enable debugging { debug: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+    console.log
+      ◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+
+      at _log (node_modules/dotenv/lib/main.js:131:11)
+
+
+Test Suites: 6 failed, 3 passed, 9 total
+Tests:       6 failed, 7 passed, 13 total
+Snapshots:   0 total
+Time:        18.485 s
+Ran all test suites.
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+PS C:\Users\Akku\Documents\content-platform\backend> cd ..\frontend\content-platform-ui\
+PS C:\Users\Akku\Documents\content-platform\frontend\content-platform-ui> npm run dev
+
+> content-platform-ui@0.0.0 dev
+> vite
+
+
+  VITE v8.0.16  ready in 743 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+6:44:22 PM [vite] Internal server error: Failed to resolve import "../api/posts" from "src/pages/FeedPage.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx:7:25
+  4  |  */
+  5  |  import { useEffect, useState } from "react";
+  6  |  import { getPosts } from "../api/posts";
+     |                            ^
+  7  |  import PostCard from "../components/PostCard";
+  8  |  var _jsxFileName = "C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx";
+      at TransformPluginContext._formatLog (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 1)
+      at async TransformPluginContext.transform (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/node_modules/vite/dist/node/chunks/node.js:24646:26)
+6:44:22 PM [vite] (client) Pre-transform error: Failed to resolve import "../api/posts" from "src/pages/FeedPage.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx:7:25
+  4  |  */
+  5  |  import { useEffect, useState } from "react";
+  6  |  import { getPosts } from "../api/posts";
+     |                            ^
+  7  |  import PostCard from "../components/PostCard";
+  8  |  var _jsxFileName = "C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx";
+6:44:22 PM [vite] (client) Pre-transform error: Failed to resolve import "../api/posts" from "src/pages/FeedPage.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx:7:25
+  4  |  */
+  5  |  import { useEffect, useState } from "react";
+  6  |  import { getPosts } from "../api/posts";
+     |                            ^
+  7  |  import PostCard from "../components/PostCard";
+  8  |  var _jsxFileName = "C:/Users/Akku/Documents/content-platform/frontend/content-platform-ui/src/pages/FeedPage.jsx"; (x2)

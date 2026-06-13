@@ -3,6 +3,7 @@ Comment controller
 */
 
 const commentService = require("../services/commentService");
+const { ok, fail } = require("../utils/apiResponse");
 
 async function createComment(req, res) {
     try {
@@ -11,15 +12,15 @@ async function createComment(req, res) {
             req.body
         );
 
-        res.json({ data: result });
+        ok(res, result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        fail(res, 400, err.message);
     }
 }
 
 async function getComments(req, res) {
     const data = await commentService.getComments(req.params.postId);
-    res.json({ data });
+    ok(res, data);
 }
 
 async function deleteComment(req, res) {
@@ -28,7 +29,7 @@ async function deleteComment(req, res) {
         req.params.id
     );
 
-    res.json({ data: true });
+    ok(res, true);
 }
 
 module.exports = {

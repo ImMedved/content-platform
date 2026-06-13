@@ -3,10 +3,11 @@ Reaction controller
 */
 
 const reactionService = require("../services/reactionService");
+const { ok } = require("../utils/apiResponse");
 
 async function addReaction(req, res) {
     await reactionService.addReaction(req.user.userId, req.body);
-    res.json({ data: true });
+    ok(res, true);
 }
 
 async function removeReaction(req, res) {
@@ -15,12 +16,12 @@ async function removeReaction(req, res) {
         req.params.postId
     );
 
-    res.json({ data: true });
+    ok(res, true);
 }
 
 async function getReactions(req, res) {
     const data = await reactionService.getReactions(req.params.postId);
-    res.json({ data });
+    ok(res, data);
 }
 
 module.exports = {

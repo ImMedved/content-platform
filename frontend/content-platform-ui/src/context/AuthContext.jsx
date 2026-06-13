@@ -7,6 +7,7 @@ Auth context
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { getMe } from "../api/user";
+import { getApiErrorMessage } from "../api/response";
 
 const AuthContext = createContext();
 
@@ -14,12 +15,20 @@ export function AuthProvider({ children }) {
     const [token, setToken] = useState(localStorage.getItem("token"));
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState("");
 
     async function loadUser() {
+        console.info("[auth] loading current user");
+
         try {
-            const res = await getMe();
-            setUser(res.data);
+            const userData = await getMe();
+            console.info("[auth] current user loaded", userData);
+            setUser(userData);
+            setAuthError("");
         } catch (err) {
+            const message = getApiErrorMessage(err);
+            console.error("[auth] failed to load current user", err);
+            setAuthError(message);
             logout();
         } finally {
             setLoading(false);
@@ -27,26 +36,43 @@ export function AuthProvider({ children }) {
     }
 
     function login(token) {
+        if (!token || typeof token !== "string") {
+            throw new Error("Login response does not include a valid token");
+        }
+
+        console.info("[auth] storing token");
         localStorage.setItem("token", token);
         setToken(token);
+        setLoading(true);
+        setAuthError("");
     }
 
     function logout() {
+        console.info("[auth] clearing session");
         localStorage.removeItem("token");
         setToken(null);
         setUser(null);
+        setLoading(false);
     }
 
     useEffect(() => {
         if (token) {
             loadUser();
         } else {
+            setUser(null);
             setLoading(false);
         }
     }, [token]);
 
     return (
-        <AuthContext.Provider value={{ token, user, login, logout, loading }}>
+        <AuthContext.Provider value={{
+            token,
+            user,
+            login,
+            logout,
+            loading,
+            authError
+        }}>
             {children}
         </AuthContext.Provider>
     );

@@ -5,14 +5,11 @@ User controller
 */
 
 const userRepo = require("../repositories/userRepository");
+const { ok } = require("../utils/apiResponse");
 
 async function getMe(req, res) {
     const user = await userRepo.findById(req.user.userId);
-
-    res.json({
-        userId: user.id,
-        data: user
-    });
+    ok(res, user);
 }
 
 module.exports = {

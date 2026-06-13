@@ -4,9 +4,9 @@ The project should include user profiles containing posts, the ability to subscr
 A mock payment system for paid content and site moderation (deleting posts, comments, and profiles from the site interface) should be implemented.
 
 # Work plan
-- [ ] Dictionary Database Implementation ![Status](https://shields.io)
-- [ ] Backend Skeleton (Express <-> DB) ![Status](https://shields.io)
-- [ ] API Contract Markup ![Status](https://shields.io)
+- [X] Dictionary Database Implementation ![Status](https://shields.io)
+- [X] Backend Skeleton (Express <-> DB) ![Status](https://shields.io)
+- [X] API Contract Markup ![Status](https://shields.io)
 - [ ] Fully Finished UI in React ![Status](https://shields.io)
 - [ ] Final Backend Implementation ![Status](https://shields.io)
 - [ ] Testing and Debugging ![Status](https://shields.io)

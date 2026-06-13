@@ -6,6 +6,7 @@ Auth tests
 
 const request = require("supertest");
 const app = require("../app");
+const { apiPath, responseData } = require("./helpers/api");
 
 describe("Auth API", () => {
 
@@ -13,7 +14,7 @@ describe("Auth API", () => {
 
     it("should register user", async () => {
         const res = await request(app)
-            .post("/api/auth/register")
+            .post(apiPath("/auth/register"))
             .send({
                 username: "test",
                 email,
@@ -21,19 +22,29 @@ describe("Auth API", () => {
             });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.userId).toBeDefined();
+        expect(responseData(res).userId).toBeDefined();
     });
 
     it("should login user", async () => {
-        const res = await request(app)
-            .post("/api/auth/login")
+        const loginEmail = `login_${Date.now()}@test.com`;
+
+        await request(app)
+            .post(apiPath("/auth/register"))
             .send({
-                email,
+                username: "login_test",
+                email: loginEmail,
+                password: "123456"
+            });
+
+        const res = await request(app)
+            .post(apiPath("/auth/login"))
+            .send({
+                email: loginEmail,
                 password: "123456"
             });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.token).toBeDefined();
+        expect(responseData(res).token).toBeDefined();
     });
 
 });

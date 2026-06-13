@@ -1,12 +1,13 @@
 const authService = require("../services/authService");
+const { ok, fail } = require("../utils/apiResponse");
 
 // register endpoint
 async function register(req, res) {
     try {
         const result = await authService.register(req.body);
-        res.json(result);
+        ok(res, result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        fail(res, 400, err.message);
     }
 }
 
@@ -14,9 +15,9 @@ async function register(req, res) {
 async function login(req, res) {
     try {
         const result = await authService.login(req.body);
-        res.json(result);
+        ok(res, result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        fail(res, 400, err.message);
     }
 }
 

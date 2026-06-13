@@ -5,11 +5,11 @@ Init test DB
 
 const fs = require("fs");
 const path = require("path");
-const db = require("../src/db/db");
+const db = require("../db/db");
 
 module.exports = async function initDb() {
     const schema = fs.readFileSync(
-        path.join(__dirname, "../database/schema.sql"),
+        path.join(__dirname, "../../../database/schema.sql"),
         "utf-8"
     );
 
@@ -21,10 +21,4 @@ module.exports = async function initDb() {
     for (const query of queries) {
         await db.query(query);
     }
-
-    // роли
-    await db.query(`
-        INSERT INTO role (name)
-        VALUES ('user'), ('author'), ('admin')
-    `);
 };

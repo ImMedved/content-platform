@@ -4,8 +4,8 @@ Global test setup
 - reset redis
 */
 
-const db = require("../src/db/db");
-const redisClient = require("../src/config/redis");
+const db = require("../db/db");
+const redisClient = require("../config/redis");
 const initDb = require("./initDb");
 
 beforeAll(async () => {
@@ -18,6 +18,8 @@ beforeAll(async () => {
 
 beforeEach(async () => {
     // порядок важен из-за FK
+    await db.query("DELETE FROM reaction");
+    await db.query("DELETE FROM comment");
     await db.query("DELETE FROM follow");
     await db.query("DELETE FROM post_content");
     await db.query("DELETE FROM post_access");
@@ -31,4 +33,5 @@ beforeEach(async () => {
 
 afterAll(async () => {
     await redisClient.quit();
+    await db.end();
 });

@@ -16,21 +16,16 @@ const feedRoutes = require("./routes/feedRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const reactionRoutes = require("./routes/reactionRoutes");
 
-// routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/v1/posts", postRoutes);
-app.use("/api/v1/follow", followRoutes);
-app.use("/api/v1/feed", feedRoutes);
-app.use("/api/v1/comments", commentRoutes);
-app.use("/api/v1/reactions", reactionRoutes);
+const API_PREFIX = "/api/v1";
 
-// legacy/non-versioned routes for tests and compatibility
-app.use("/api/posts", postRoutes);
-app.use("/api/follow", followRoutes);
-app.use("/api/feed", feedRoutes);
-// support singular path used by tests
-app.use("/api/user", userRoutes);
+// routes
+app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/posts`, postRoutes);
+app.use(`${API_PREFIX}/follow`, followRoutes);
+app.use(`${API_PREFIX}/feed`, feedRoutes);
+app.use(`${API_PREFIX}/comments`, commentRoutes);
+app.use(`${API_PREFIX}/reactions`, reactionRoutes);
 
 // test api
 app.get("/", (req, res) => {

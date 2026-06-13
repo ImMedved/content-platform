@@ -5,12 +5,13 @@ Auth middleware
 */
 
 const jwt = require("jsonwebtoken");
+const { fail } = require("../utils/apiResponse");
 
 function authMiddleware(req, res, next) {
     const header = req.headers["authorization"];
 
     if (!header) {
-        return res.status(401).json({ error: "No token" });
+        return fail(res, 401, "No token");
     }
 
     const token = header.split(" ")[1];
@@ -20,7 +21,7 @@ function authMiddleware(req, res, next) {
         req.user = decoded;
         next();
     } catch (err) {
-        return res.status(401).json({ error: "Invalid token" });
+        return fail(res, 401, "Invalid token");
     }
 }
 
