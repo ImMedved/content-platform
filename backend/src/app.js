@@ -13,6 +13,8 @@ const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
 const followRoutes = require("./routes/followRoutes");
 const feedRoutes = require("./routes/feedRoutes");
+const commentRoutes = require("./routes/commentRoutes");
+const reactionRoutes = require("./routes/reactionRoutes");
 
 // routes
 app.use("/api/auth", authRoutes);
@@ -20,6 +22,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/follow", followRoutes);
 app.use("/api/v1/feed", feedRoutes);
+app.use("/api/v1/comments", commentRoutes);
+app.use("/api/v1/reactions", reactionRoutes);
+
 // legacy/non-versioned routes for tests and compatibility
 app.use("/api/posts", postRoutes);
 app.use("/api/follow", followRoutes);

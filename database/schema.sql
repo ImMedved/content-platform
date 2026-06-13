@@ -76,3 +76,25 @@ CREATE TABLE follow (
     FOREIGN KEY (following_id) REFERENCES user(id),
     CHECK (follower_id != following_id)
 );
+
+CREATE TABLE comment (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    author_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'active',
+    FOREIGN KEY (post_id) REFERENCES post(id),
+    FOREIGN KEY (author_id) REFERENCES user(id)
+);
+
+CREATE TABLE reaction (
+    user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    type VARCHAR(20) DEFAULT 'like',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (post_id) REFERENCES post(id)
+);

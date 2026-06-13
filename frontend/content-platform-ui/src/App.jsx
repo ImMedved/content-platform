@@ -6,11 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import FeedPage from "./pages/FeedPage";
+import CreatePostPage from "./pages/CreatePostPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-
-function Dashboard() {
-    return <h2>Dashboard</h2>;
-}
 
 function App() {
     return (
@@ -23,7 +21,16 @@ function App() {
                     path="/"
                     element={
                         <ProtectedRoute>
-                            <Dashboard />
+                            <FeedPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/create"
+                    element={
+                        <ProtectedRoute>
+                            <CreatePostPage />
                         </ProtectedRoute>
                     }
                 />
