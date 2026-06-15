@@ -8,6 +8,7 @@ const app = require("../app");
 const { apiPath, responseData, responseToken } = require("./helpers/api");
 
 let token;
+let userId;
 
 beforeEach(async () => {
     await request(app).post(apiPath("/auth/register")).send({
@@ -22,6 +23,12 @@ beforeEach(async () => {
     });
 
     token = responseToken(res);
+
+    const meRes = await request(app)
+        .get(apiPath("/users/me"))
+        .set("Authorization", `Bearer ${token}`);
+
+    userId = responseData(meRes).id;
 });
 
 describe("User API", () => {
@@ -33,6 +40,22 @@ describe("User API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(responseData(res).id).toBeDefined();
+    });
+
+    it("should return user profile by id", async () => {
+        const res = await request(app).get(apiPath(`/users/${userId}`));
+
+        expect(res.statusCode).toBe(200);
+        expect(responseData(res).id).toBe(userId);
+    });
+
+    it("should return following list for current user", async () => {
+        const res = await request(app)
+            .get(apiPath("/users/me/following"))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(responseData(res))).toBe(true);
     });
 
 });

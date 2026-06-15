@@ -5,7 +5,7 @@ Feed page
 
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getPosts } from "../api/post";
+import { getFeed } from "../api/feed";
 import { getApiErrorMessage } from "../api/response";
 import PostCard from "../components/PostCard";
 
@@ -22,14 +22,14 @@ function FeedPage() {
     async function load() {
         setLoading(true);
         setError("");
-        console.info("[feed] loading posts");
+        console.info("[feed] loading personalized feed");
 
         try {
-            const res = await getPosts();
-            console.info("[feed] posts response", res);
+            const res = await getFeed();
+            console.info("[feed] feed response", res);
 
             if (!Array.isArray(res)) {
-                throw new Error("Posts response is not an array");
+                throw new Error("Feed response is not an array");
             }
 
             setPosts(res);

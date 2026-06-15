@@ -5,6 +5,7 @@ Follow service
 */
 
 const followRepo = require("../repositories/followRepository");
+const userRepo = require("../repositories/userRepository");
 const feedService = require("./feedService");
 
 async function follow(userId, targetId) {
@@ -21,8 +22,20 @@ async function getFollowing(userId) {
     return await followRepo.getFollowing(userId);
 }
 
+async function getFollowingUsers(userId) {
+    const ids = await followRepo.getFollowing(userId);
+    return await userRepo.findManyByIds(ids);
+}
+
+async function getFollowerUsers(userId) {
+    const ids = await followRepo.getFollowers(userId);
+    return await userRepo.findManyByIds(ids);
+}
+
 module.exports = {
     follow,
     unfollow,
-    getFollowing
+    getFollowing,
+    getFollowingUsers,
+    getFollowerUsers
 };

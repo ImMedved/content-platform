@@ -26,6 +26,7 @@ function Layout({ children }) {
                 borderBottom: "1px solid gray"
             }}>
                 <Link to="/">Feed</Link>
+                <Link to="/users/me">Profile</Link>
                 <Link to="/create">Create</Link>
 
                 {user && (

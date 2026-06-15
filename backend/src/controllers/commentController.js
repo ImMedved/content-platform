@@ -19,17 +19,25 @@ async function createComment(req, res) {
 }
 
 async function getComments(req, res) {
-    const data = await commentService.getComments(req.params.postId);
-    ok(res, data);
+    try {
+        const data = await commentService.getComments(req.params.postId);
+        ok(res, data);
+    } catch (err) {
+        fail(res, 500, err.message);
+    }
 }
 
 async function deleteComment(req, res) {
-    await commentService.deleteComment(
-        req.user.userId,
-        req.params.id
-    );
+    try {
+        await commentService.deleteComment(
+            req.user.userId,
+            req.params.id
+        );
 
-    ok(res, true);
+        ok(res, true);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
 }
 
 module.exports = {

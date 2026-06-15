@@ -5,5 +5,10 @@ const userController = require("../controllers/userController");
 
 // protected route
 router.get("/me", authMiddleware, userController.getMe);
+router.get("/me/following", authMiddleware, userController.getMyFollowing);
+router.get("/me/followers", authMiddleware, userController.getMyFollowers);
+router.get("/:id/following", userController.getFollowing);
+router.get("/:id/followers", userController.getFollowers);
+router.get("/:id", userController.getUser);
 
 module.exports = router;

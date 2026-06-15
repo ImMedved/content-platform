@@ -35,8 +35,23 @@ async function findById(id) {
     return rows[0];
 }
 
+async function findManyByIds(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return [];
+    }
+
+    const placeholders = ids.map(() => "?").join(", ");
+    const [rows] = await db.query(
+        `SELECT id, username, email, display_name FROM user WHERE id IN (${placeholders})`,
+        ids
+    );
+
+    return rows;
+}
+
 module.exports = {
     createUser,
     findByEmail,
-    findById
+    findById,
+    findManyByIds
 };

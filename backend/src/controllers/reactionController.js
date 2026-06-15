@@ -3,25 +3,37 @@ Reaction controller
 */
 
 const reactionService = require("../services/reactionService");
-const { ok } = require("../utils/apiResponse");
+const { ok, fail } = require("../utils/apiResponse");
 
 async function addReaction(req, res) {
-    await reactionService.addReaction(req.user.userId, req.body);
-    ok(res, true);
+    try {
+        await reactionService.addReaction(req.user.userId, req.body);
+        ok(res, true);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
 }
 
 async function removeReaction(req, res) {
-    await reactionService.removeReaction(
-        req.user.userId,
-        req.params.postId
-    );
+    try {
+        await reactionService.removeReaction(
+            req.user.userId,
+            req.params.postId
+        );
 
-    ok(res, true);
+        ok(res, true);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
 }
 
 async function getReactions(req, res) {
-    const data = await reactionService.getReactions(req.params.postId);
-    ok(res, data);
+    try {
+        const data = await reactionService.getReactions(req.params.postId);
+        ok(res, data);
+    } catch (err) {
+        fail(res, 500, err.message);
+    }
 }
 
 module.exports = {

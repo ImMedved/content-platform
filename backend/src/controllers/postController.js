@@ -17,14 +17,25 @@ async function createPost(req, res) {
 
 // get one
 async function getPost(req, res) {
-    const data = await postService.getPost(req.params.id);
-    ok(res, data);
+    try {
+        const data = await postService.getPost(req.params.id);
+        ok(res, data);
+    } catch (err) {
+        fail(res, 500, err.message);
+    }
 }
 
 // list
 async function listPosts(req, res) {
-    const data = await postService.listPosts();
-    ok(res, data);
+    try {
+        const data = await postService.listPosts({
+            limit: req.query.limit,
+            authorId: req.query.authorId
+        });
+        ok(res, data);
+    } catch (err) {
+        fail(res, 500, err.message);
+    }
 }
 
 module.exports = {

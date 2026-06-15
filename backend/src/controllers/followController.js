@@ -3,16 +3,24 @@ Follow controller
 */
 
 const followService = require("../services/followService");
-const { ok } = require("../utils/apiResponse");
+const { ok, fail } = require("../utils/apiResponse");
 
 async function follow(req, res) {
-    await followService.follow(req.user.userId, req.params.userId);
-    ok(res, true);
+    try {
+        await followService.follow(req.user.userId, req.params.userId);
+        ok(res, true);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
 }
 
 async function unfollow(req, res) {
-    await followService.unfollow(req.user.userId, req.params.userId);
-    ok(res, true);
+    try {
+        await followService.unfollow(req.user.userId, req.params.userId);
+        ok(res, true);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
 }
 
 module.exports = {

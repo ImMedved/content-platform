@@ -58,11 +58,19 @@ async function getPostById(id) {
 }
 
 // list posts
-async function listPosts(limit = 20) {
-    const [rows] = await db.query(
-        "SELECT * FROM post ORDER BY created_at DESC LIMIT ?",
-        [limit]
-    );
+async function listPosts(limit = 20, authorId = null) {
+    let query = "SELECT * FROM post";
+    const params = [];
+
+    if (authorId) {
+        query += " WHERE author_id = ?";
+        params.push(authorId);
+    }
+
+    query += " ORDER BY created_at DESC LIMIT ?";
+    params.push(limit);
+
+    const [rows] = await db.query(query, params);
 
     return rows;
 }

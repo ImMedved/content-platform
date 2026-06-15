@@ -69,4 +69,23 @@ describe("Feed API", () => {
         expect(res.body.data.length).toBeGreaterThan(0);
     });
 
+    it("should include current user's own posts in feed", async () => {
+        await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token1}`)
+            .send({
+                title: "my own feed post",
+                content: [{ type: "text", value: "hello self feed" }],
+                access: { type: "free" }
+            });
+
+        const res = await request(app)
+            .get(apiPath("/feed"))
+            .set("Authorization", `Bearer ${token1}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.some((post) => post.author_id)).toBe(true);
+        expect(res.body.data.some((post) => post.title === "my own feed post")).toBe(true);
+    });
+
 });

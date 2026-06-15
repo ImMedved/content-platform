@@ -33,8 +33,10 @@ async function getPost(id) {
     return await postRepo.getPostById(id);
 }
 
-async function listPosts() {
-    return await postRepo.listPosts();
+async function listPosts(filters = {}) {
+    const { limit, authorId } = filters;
+
+    return await postRepo.listPosts(limit || 20, authorId || null);
 }
 
 module.exports = {

@@ -9,9 +9,7 @@ const redisClient = require("../config/redis");
 const initDb = require("./initDb");
 
 beforeAll(async () => {
-    if (!redisClient.isOpen) {
-        await redisClient.connect();
-    }
+    await redisClient.connectRedisIfAvailable();
 
     await initDb();
 });
@@ -28,10 +26,14 @@ beforeEach(async () => {
     await db.query("DELETE FROM session");
     await db.query("DELETE FROM user");
 
-    await redisClient.flushAll();
+    if (redisClient.isOpen) {
+        await redisClient.flushAll();
+    }
 });
 
 afterAll(async () => {
-    await redisClient.quit();
+    if (redisClient.isOpen) {
+        await redisClient.quit();
+    }
     await db.end();
 });

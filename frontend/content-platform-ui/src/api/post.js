@@ -10,8 +10,8 @@ export async function createPost(data) {
     return unwrapApiResponse(res);
 }
 
-export async function getPosts() {
-    const res = await client.get("/posts");
+export async function getPosts(params = {}) {
+    const res = await client.get("/posts", { params });
     return unwrapApiResponse(res);
 }
 

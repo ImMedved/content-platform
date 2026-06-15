@@ -3,7 +3,12 @@ function ok(res, data) {
 }
 
 function fail(res, status, message) {
-    return res.status(status).json({ data: null, error: message });
+    const normalizedMessage =
+        typeof message === "string" && message.trim()
+            ? message
+            : "Request failed";
+
+    return res.status(status).json({ data: null, error: normalizedMessage });
 }
 
 module.exports = {
