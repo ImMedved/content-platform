@@ -67,6 +67,7 @@ describe("Feed API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.data.length).toBeGreaterThan(0);
+        expect(res.body.data[0].author_username).toBeDefined();
     });
 
     it("should include current user's own posts in feed", async () => {

@@ -18,7 +18,7 @@ async function getRoleByName(name) {
 // assign role
 async function assignRole(userId, roleId) {
     await db.query(
-        "INSERT INTO user_role (user_id, role_id) VALUES (?, ?)",
+        "INSERT INTO users_role (user_id, role_id) VALUES (?, ?)",
         [userId, roleId]
     );
 }

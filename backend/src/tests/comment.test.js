@@ -48,10 +48,38 @@ describe("Comment API", () => {
     });
 
     it("should get comments", async () => {
+        await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                content: "hello"
+            });
+
         const res = await request(app)
             .get(apiPath(`/comments/post/${postId}`));
 
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.data[0].author_username).toBe("comment_user");
+    });
+
+    it("should delete own comment", async () => {
+        const createRes = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                content: "delete me"
+            });
+
+        const commentId = createRes.body.data.commentId;
+
+        const deleteRes = await request(app)
+            .delete(apiPath(`/comments/${commentId}`))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(deleteRes.statusCode).toBe(200);
+        expect(deleteRes.body.data).toBe(true);
     });
 });

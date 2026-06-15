@@ -2,10 +2,11 @@
 Register page
 */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { register as registerApi } from "../api/auth";
 import { getApiErrorMessage } from "../api/response";
+import { useAuth } from "../context/AuthContext";
 
 function RegisterPage() {
     const [username, setUsername] = useState("");
@@ -15,6 +16,13 @@ function RegisterPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
+    const auth = useAuth();
+
+    useEffect(() => {
+        if (auth.token) {
+            navigate("/");
+        }
+    }, [auth.token, navigate]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -41,39 +49,63 @@ function RegisterPage() {
     }
 
     return (
-        <div>
-            <h2>Register</h2>
+        <div className="card form-card">
+            <div className="card__body">
+                <h1 className="form-title">Register</h1>
+                <p className="form-text">
+                    Create a new account to publish content and interact with other users.
+                </p>
 
-            <form onSubmit={handleSubmit}>
-                <input
-                    placeholder="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={submitting}
-                />
+                <form className="form-grid" onSubmit={handleSubmit}>
+                    <label className="field">
+                        <span className="field__label">Username</span>
+                        <input
+                            className="field__input"
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            disabled={submitting}
+                        />
+                    </label>
 
-                <input
-                    placeholder="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={submitting}
-                />
+                    <label className="field">
+                        <span className="field__label">Email</span>
+                        <input
+                            className="field__input"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={submitting}
+                        />
+                    </label>
 
-                <input
-                    placeholder="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={submitting}
-                />
+                    <label className="field">
+                        <span className="field__label">Password</span>
+                        <input
+                            className="field__input"
+                            placeholder="Create password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={submitting}
+                        />
+                    </label>
 
-                <button type="submit" disabled={submitting}>
-                    {submitting ? "Registering..." : "Register"}
-                </button>
-            </form>
+                    {error && <div className="muted-box">{error}</div>}
+                    {success && <div className="muted-box">{success}</div>}
 
-            {error && <p>{error}</p>}
-            {success && <p>{success}</p>}
+                    <div className="form-actions">
+                        <button className="btn btn--primary" type="submit" disabled={submitting}>
+                            {submitting ? "Creating..." : "Register"}
+                        </button>
+
+                        <Link className="btn btn--secondary" to="/login">
+                            Log in
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

@@ -22,9 +22,9 @@ beforeEach(async () => {
     await db.query("DELETE FROM post_content");
     await db.query("DELETE FROM post_access");
     await db.query("DELETE FROM post");
-    await db.query("DELETE FROM user_role");
+    await db.query("DELETE FROM users_role");
     await db.query("DELETE FROM session");
-    await db.query("DELETE FROM user");
+    await db.query("DELETE FROM users");
 
     if (redisClient.isOpen) {
         await redisClient.flushAll();

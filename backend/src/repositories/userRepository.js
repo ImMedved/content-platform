@@ -8,7 +8,7 @@ const db = require("../db/db");
 // create user
 async function createUser({ username, email, passwordHash }) {
     const [result] = await db.query(
-        "INSERT INTO user (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)",
         [username, email, passwordHash, username]
     );
 
@@ -18,7 +18,7 @@ async function createUser({ username, email, passwordHash }) {
 // find by email
 async function findByEmail(email) {
     const [rows] = await db.query(
-        "SELECT * FROM user WHERE email = ?",
+        "SELECT * FROM users WHERE email = ?",
         [email]
     );
 
@@ -28,7 +28,7 @@ async function findByEmail(email) {
 // find by id
 async function findById(id) {
     const [rows] = await db.query(
-        "SELECT id, username, email, display_name FROM user WHERE id = ?",
+        "SELECT id, username, email, display_name, bio, avatar_url, status, created_at, last_login_at FROM users WHERE id = ?",
         [id]
     );
 
@@ -42,7 +42,7 @@ async function findManyByIds(ids) {
 
     const placeholders = ids.map(() => "?").join(", ");
     const [rows] = await db.query(
-        `SELECT id, username, email, display_name FROM user WHERE id IN (${placeholders})`,
+        `SELECT id, username, email, display_name, bio, avatar_url, status, created_at, last_login_at FROM users WHERE id IN (${placeholders})`,
         ids
     );
 

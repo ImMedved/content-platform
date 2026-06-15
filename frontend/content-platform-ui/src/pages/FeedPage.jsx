@@ -44,18 +44,46 @@ function FeedPage() {
     }
 
     return (
-        <div>
-            <h2>Feed</h2>
+        <>
+            <h1 className="page-title">Feed</h1>
+            <p className="page-subtitle">Recent publications from users you follow.</p>
 
-            {location.state?.success && <p>{location.state.success}</p>}
-            {loading && <p>Loading posts...</p>}
-            {error && <p>{error}</p>}
-            {!loading && !error && posts.length === 0 && <p>No posts yet.</p>}
+            <div className="feed-layout">
+                <section className="post-list">
+                    {location.state?.success && (
+                        <div className="muted-box">{location.state.success}</div>
+                    )}
+                    {loading && <div className="muted-box">Loading posts...</div>}
+                    {error && <div className="muted-box">{error}</div>}
+                    {!loading && !error && posts.length === 0 && (
+                        <div className="center-empty card">
+                            <div className="card__body">
+                                Your feed is empty. Follow another user or publish your first post.
+                            </div>
+                        </div>
+                    )}
 
-            {posts.map(p => (
-                <PostCard key={p.id} post={p} />
-            ))}
-        </div>
+                    {posts.map((p) => (
+                        <PostCard key={p.id} post={p} />
+                    ))}
+                </section>
+
+                <aside className="feed-sidebar">
+                    <div className="card sidebar-block">
+                        <h3 className="sidebar-title">Feed state</h3>
+                        <p className="sidebar-text">
+                            Posts loaded: {posts.length}
+                        </p>
+                    </div>
+
+                    <div className="card sidebar-block">
+                        <button className="btn btn--secondary btn--block" onClick={load}>
+                            Refresh feed
+                        </button>
+                    </div>
+                </aside>
+            </div>
+        </>
     );
 }
 

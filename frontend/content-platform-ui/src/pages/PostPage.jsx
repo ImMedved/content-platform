@@ -41,11 +41,11 @@ function PostPage() {
     }
 
     return (
-        <div>
-            <h2>Post</h2>
+        <div className="post-page">
+            <h1 className="page-title">Post</h1>
 
-            {loading && <p>Loading post...</p>}
-            {error && <p>{error}</p>}
+            {loading && <div className="muted-box">Loading post...</div>}
+            {error && <div className="muted-box">{error}</div>}
             {post && !loading && <PostCard post={post} />}
         </div>
     );

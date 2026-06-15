@@ -18,6 +18,11 @@ async function start() {
             console.log("Redis connected");
         }
 
+        // ensure db schema is created before starting server
+        const db = require("./db/db");
+        await db.createSchema();
+    
+
         app.listen(PORT, () => {
             console.log(`Server started on port ${PORT}`);
         });

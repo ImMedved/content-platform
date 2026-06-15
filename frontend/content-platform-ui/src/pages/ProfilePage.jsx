@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../api/follow";
-import { getPosts } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import {
-    getMe,
     getMyFollowing,
-    getUser,
+    getMyProfile,
     getUserFollowers,
-    getUserFollowing
+    getUserFollowing,
+    getUserProfile
 } from "../api/user";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
@@ -37,24 +36,26 @@ function ProfilePage() {
         console.info("[profile] loading profile", { id });
 
         try {
-            const profileData = id === "me" ? await getMe() : await getUser(id);
+            const profileResponse = id === "me"
+                ? await getMyProfile()
+                : await getUserProfile(id);
+            const profileData = profileResponse?.user || null;
             console.info("[profile] user response", profileData);
 
             if (!profileData?.id) {
                 throw new Error("User was not found");
             }
 
-            const [postsData, followersData, followingData, myFollowingData] = await Promise.all([
-                getPosts({ authorId: profileData.id }),
+            const [followersData, followingData, myFollowingData] = await Promise.all([
                 getUserFollowers(profileData.id),
                 getUserFollowing(profileData.id),
                 getMyFollowing()
             ]);
 
-            console.info("[profile] posts response", postsData);
+            console.info("[profile] posts response", profileResponse?.posts);
 
             setProfile(profileData);
-            setPosts(Array.isArray(postsData) ? postsData : []);
+            setPosts(Array.isArray(profileResponse?.posts) ? profileResponse.posts : []);
             setFollowers(Array.isArray(followersData) ? followersData : []);
             setFollowing(Array.isArray(followingData) ? followingData : []);
             setMyFollowingIds(
@@ -117,39 +118,57 @@ function ProfilePage() {
 
     return (
         <div>
-            <h2>Profile</h2>
+            <h1 className="page-title">Profile</h1>
 
-            {loading && <p>Loading profile...</p>}
-            {error && <p>{error}</p>}
+            {loading && <div className="muted-box">Loading profile...</div>}
+            {error && <div className="muted-box">{error}</div>}
 
             {profile && !loading && (
-                <>
-                    <div style={{ display: "grid", gap: 8, marginBottom: 20 }}>
-                        <p>Username: {profile.username}</p>
-                        <p>Display name: {profile.display_name}</p>
-                        <p>Email: {profile.email}</p>
-                        <p>Followers: {followers.length}</p>
-                        <p>Following: {following.length}</p>
+                <div className="profile-layout">
+                    <div className="profile-header">
+                        <div className="profile-avatar" />
+
+                        <div className="card profile-info">
+                            <h2 className="profile-name">
+                                {profile.display_name || profile.username || "User"}
+                            </h2>
+                            <p className="profile-username">@{profile.username || "unknown"}</p>
+                            <p className="profile-bio">{profile.bio || "No bio yet."}</p>
+
+                            <div className="profile-stats">
+                                <span>Followers: {followers.length}</span>
+                                <span>Following: {following.length}</span>
+                                <span>Email: {profile.email}</span>
+                            </div>
+
+                            {!isOwnProfile && (
+                                <div className="profile-actions">
+                                    <button
+                                        className="btn btn--secondary"
+                                        onClick={handleFollowToggle}
+                                        disabled={followLoading}
+                                    >
+                                        {followLoading
+                                            ? "Saving..."
+                                            : isFollowingProfile
+                                                ? "Unfollow"
+                                                : "Follow"}
+                                    </button>
+                                </div>
+                            )}
+
+                            {actionMessage && <div className="muted-box">{actionMessage}</div>}
+                        </div>
                     </div>
 
-                    {!isOwnProfile && (
-                        <button onClick={handleFollowToggle} disabled={followLoading}>
-                            {followLoading
-                                ? "Saving..."
-                                : isFollowingProfile
-                                    ? "Unfollow"
-                                    : "Follow"}
-                        </button>
-                    )}
-
-                    {actionMessage && <p>{actionMessage}</p>}
-
-                    <h3>Posts</h3>
-                    {posts.length === 0 && <p>No posts yet.</p>}
-                    {posts.map((post) => (
-                        <PostCard key={post.id} post={post} />
-                    ))}
-                </>
+                    <section className="post-list">
+                        <h3 className="page-title page-title--section">User posts</h3>
+                        {posts.length === 0 && <div className="muted-box">No posts yet.</div>}
+                        {posts.map((post) => (
+                            <PostCard key={post.id} post={post} />
+                        ))}
+                    </section>
+                </div>
             )}
         </div>
     );

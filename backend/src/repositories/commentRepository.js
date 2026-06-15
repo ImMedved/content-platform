@@ -18,7 +18,14 @@ async function createComment(postId, userId, content) {
 
 async function getComments(postId) {
     const [rows] = await db.query(
-        "SELECT * FROM comment WHERE post_id = ? ORDER BY created_at ASC",
+        `SELECT
+            c.*,
+            u.username AS author_username,
+            u.display_name AS authorName
+        FROM comment c
+        INNER JOIN users u ON u.id = c.author_id
+        WHERE c.post_id = ?
+        ORDER BY c.created_at ASC`,
         [postId]
     );
 

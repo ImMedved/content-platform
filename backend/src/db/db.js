@@ -35,17 +35,14 @@ async function createSchema() {
         .filter(stmt => stmt.length > 0);
     
     for (const statement of statements) {
-        if (!statement.toUpperCase().includes("INSERT")) {
-            try {
-                await pool.query(statement);
-            } catch (err) {
-                // ignore 'table already exists' errors and continue
-                if (err && err.code === 'ER_TABLE_EXISTS_ERROR') {
-                    continue;
-                }
-                // rethrow other errors
-                throw err;
+        try {
+            await pool.query(statement);
+        } catch (err) {
+            if (err && (err.code === "ER_TABLE_EXISTS_ERROR" || err.code === "ER_DUP_ENTRY")) {
+                continue;
             }
+
+            throw err;
         }
     }
 }

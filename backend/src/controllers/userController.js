@@ -6,12 +6,16 @@ User controller
 
 const userRepo = require("../repositories/userRepository");
 const followService = require("../services/followService");
+const postService = require("../services/postService");
 const { ok, fail } = require("../utils/apiResponse");
 
 async function getMe(req, res) {
     try {
         const user = await userRepo.findById(req.user.userId);
-        ok(res, user);
+        const posts = await postService.listPosts({
+            authorId: req.user.userId
+        });
+        ok(res, { ...user, posts });
     } catch (err) {
         fail(res, 500, err.message);
     }
@@ -20,7 +24,15 @@ async function getMe(req, res) {
 async function getUser(req, res) {
     try {
         const user = await userRepo.findById(req.params.id);
-        ok(res, user || null);
+        if (!user) {
+            ok(res, null);
+            return;
+        }
+
+        const posts = await postService.listPosts({
+            authorId: req.params.id
+        });
+        ok(res, { ...user, posts });
     } catch (err) {
         fail(res, 500, err.message);
     }

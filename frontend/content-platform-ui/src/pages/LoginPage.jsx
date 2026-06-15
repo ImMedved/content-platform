@@ -2,7 +2,7 @@
 Login page
 */
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { login as loginApi } from "../api/auth";
 import { getApiErrorMessage } from "../api/response";
@@ -61,33 +61,57 @@ function LoginPage() {
     }, [auth.token, navigate]);
 
     return (
-        <div>
-            <h2>Login</h2>
+        <div className="card form-card">
+            <div className="card__body">
+                <h1 className="form-title">Login</h1>
+                <p className="form-text">
+                    Sign in to open your feed, create posts, and manage your profile.
+                </p>
 
-            <form onSubmit={handleSubmit}>
-                <input
-                    placeholder="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={submitting}
-                />
+                <form className="form-grid" onSubmit={handleSubmit}>
+                    <label className="field">
+                        <span className="field__label">Email</span>
+                        <input
+                            className="field__input"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={submitting}
+                        />
+                    </label>
 
-                <input
-                    placeholder="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={submitting}
-                />
+                    <label className="field">
+                        <span className="field__label">Password</span>
+                        <input
+                            className="field__input"
+                            placeholder="Enter password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={submitting}
+                        />
+                    </label>
 
-                <button type="submit" disabled={submitting}>
-                    {submitting ? "Logging in..." : "Login"}
-                </button>
-            </form>
+                    {error && <div className="muted-box">{error}</div>}
+                    {location.state?.success && !error && (
+                        <div className="muted-box">{location.state.success}</div>
+                    )}
+                    {auth.authError && !error && !location.state?.success && (
+                        <div className="muted-box">{auth.authError}</div>
+                    )}
 
-            {error && <p>{error}</p>}
-            {location.state?.success && !error && <p>{location.state.success}</p>}
-            {auth.authError && !error && <p>{auth.authError}</p>}
+                    <div className="form-actions">
+                        <button className="btn btn--primary" type="submit" disabled={submitting}>
+                            {submitting ? "Signing in..." : "Log in"}
+                        </button>
+
+                        <Link className="btn btn--secondary" to="/register">
+                            Register
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

@@ -1,56 +1,82 @@
-## Error format: 
+# API
+
+## Response format
+
+Successful response:
+
+```json
 {
   "data": {},
   "error": null
 }
+```
+
+Failed response:
+
+```json
 {
   "data": null,
   "error": "message"
 }
+```
 
-## DDD-lite: 
-auth
-user
-post
-social
-feed
-payment
-admin
+## Current routes
 
-## API Contracts
 ### Auth
 
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-POST /api/v1/auth/logout
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
 
-register:
-req:
+Register request:
+
+```json
 {
   "username": "string",
   "email": "string",
   "password": "string"
 }
+```
 
-res:
+Register response:
+
+```json
 {
   "data": {
     "userId": 1
-  }
+  },
+  "error": null
 }
+```
 
-### USER:
-GET /api/v1/users/me
-GET /api/v1/users/:id
-PUT /api/v1/users/me
+Login response:
 
-### POST
-POST /api/v1/posts
-GET /api/v1/posts/:id
-PUT /api/v1/posts/:id
-DELETE /api/v1/posts/:id
+```json
+{
+  "data": {
+    "token": "jwt"
+  },
+  "error": null
+}
+```
 
-create post
+### Users
+
+- `GET /api/v1/users/me`
+- `GET /api/v1/users/me/following`
+- `GET /api/v1/users/me/followers`
+- `GET /api/v1/users/:id`
+- `GET /api/v1/users/:id/following`
+- `GET /api/v1/users/:id/followers`
+
+### Posts
+
+- `POST /api/v1/posts`
+- `GET /api/v1/posts`
+- `GET /api/v1/posts/:id`
+
+Create post request:
+
+```json
 {
   "title": "string",
   "description": "string",
@@ -62,37 +88,28 @@ create post
   ],
   "access": {
     "type": "free | paid",
-    "price": 10.00
+    "price": 10
   }
 }
+```
 
-### COMMENTS
-POST /api/v1/comments
-GET /api/v1/posts/:id/comments
-DELETE /api/v1/comments/:id
+### Comments
 
-### REACTIONS
-POST /api/v1/reactions
-DELETE /api/v1/reactions
+- `POST /api/v1/comments`
+- `GET /api/v1/comments/post/:postId`
+- `DELETE /api/v1/comments/:id`
 
-### FOLLOW
-POST /api/v1/follow/:userId
-DELETE /api/v1/follow/:userId
-GET /api/v1/users/:id/followers
-GET /api/v1/users/:id/following
+### Reactions
 
-### FEED
-GET /api/v1/feed
-query: ?page=1&limit=20
+- `POST /api/v1/reactions`
+- `GET /api/v1/reactions/:postId`
+- `DELETE /api/v1/reactions/:postId`
 
-### PAYMENT
-POST /api/v1/wallet/deposit
-GET /api/v1/wallet
+### Follow
 
-POST /api/v1/purchase/:postId
-GET /api/v1/purchases
+- `POST /api/v1/follow/:userId`
+- `DELETE /api/v1/follow/:userId`
 
-### ADMIN
-POST /api/v1/admin/users/:id/block
-POST /api/v1/admin/posts/:id/delete
+### Feed
 
+- `GET /api/v1/feed`

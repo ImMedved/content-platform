@@ -6,7 +6,7 @@ Auth context
 */
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { getMe } from "../api/user";
+import { getMyProfile } from "../api/user";
 import { getApiErrorMessage } from "../api/response";
 
 const AuthContext = createContext();
@@ -21,9 +21,9 @@ export function AuthProvider({ children }) {
         console.info("[auth] loading current user");
 
         try {
-            const userData = await getMe();
-            console.info("[auth] current user loaded", userData);
-            setUser(userData);
+            const profileData = await getMyProfile();
+            console.info("[auth] current user loaded", profileData);
+            setUser(profileData?.user || null);
             setAuthError("");
         } catch (err) {
             const message = getApiErrorMessage(err);

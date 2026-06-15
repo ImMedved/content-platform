@@ -42,7 +42,16 @@ async function setAccess(postId, access) {
 
 // get post
 async function getPostById(id) {
-    const [[post]] = await db.query("SELECT * FROM post WHERE id = ?", [id]);
+    const [[post]] = await db.query(
+        `SELECT
+            p.*,
+            u.username AS author_username,
+            u.display_name AS authorName
+        FROM post p
+        INNER JOIN users u ON u.id = p.author_id
+        WHERE p.id = ?`,
+        [id]
+    );
 
     const [content] = await db.query(
         "SELECT * FROM post_content WHERE post_id = ?",
@@ -59,15 +68,22 @@ async function getPostById(id) {
 
 // list posts
 async function listPosts(limit = 20, authorId = null) {
-    let query = "SELECT * FROM post";
+    let query = `
+        SELECT
+            p.*,
+            u.username AS author_username,
+            u.display_name AS authorName
+        FROM post p
+        INNER JOIN users u ON u.id = p.author_id
+    `;
     const params = [];
 
     if (authorId) {
-        query += " WHERE author_id = ?";
+        query += " WHERE p.author_id = ?";
         params.push(authorId);
     }
 
-    query += " ORDER BY created_at DESC LIMIT ?";
+    query += " ORDER BY p.created_at DESC LIMIT ?";
     params.push(limit);
 
     const [rows] = await db.query(query, params);

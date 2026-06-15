@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 function ProtectedRoute({ children }) {
     const { token, loading, authError } = useAuth();
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div className="muted-box">Loading...</div>;
 
     if (!token) {
         return <Navigate to="/login" state={authError ? { error: authError } : null} replace />;

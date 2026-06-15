@@ -40,6 +40,7 @@ describe("User API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(responseData(res).id).toBeDefined();
+        expect(Array.isArray(responseData(res).posts)).toBe(true);
     });
 
     it("should return user profile by id", async () => {
@@ -47,6 +48,7 @@ describe("User API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(responseData(res).id).toBe(userId);
+        expect(Array.isArray(responseData(res).posts)).toBe(true);
     });
 
     it("should return following list for current user", async () => {
@@ -56,6 +58,26 @@ describe("User API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(responseData(res))).toBe(true);
+    });
+
+    it("should return follower list for current user", async () => {
+        const res = await request(app)
+            .get(apiPath("/users/me/followers"))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(responseData(res))).toBe(true);
+    });
+
+    it("should return public following and followers lists by user id", async () => {
+        const followingRes = await request(app).get(apiPath(`/users/${userId}/following`));
+        const followersRes = await request(app).get(apiPath(`/users/${userId}/followers`));
+
+        expect(followingRes.statusCode).toBe(200);
+        expect(Array.isArray(responseData(followingRes))).toBe(true);
+
+        expect(followersRes.statusCode).toBe(200);
+        expect(Array.isArray(responseData(followersRes))).toBe(true);
     });
 
 });
