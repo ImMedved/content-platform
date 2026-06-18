@@ -16,6 +16,7 @@ const jwt = require("jsonwebtoken");
 const userRepo = require("../repositories/userRepository");
 const roleRepo = require("../repositories/roleRepository");
 const sessionRepo = require("../repositories/sessionRepository");
+const walletRepo = require("../repositories/walletRepository");
 
 // register
 async function register(data) {
@@ -32,6 +33,7 @@ async function register(data) {
     const role = await roleRepo.getRoleByName("user");
 
     await roleRepo.assignRole(userId, role.id);
+    await walletRepo.createWallet(userId, 100);
 
     return { userId };
 }

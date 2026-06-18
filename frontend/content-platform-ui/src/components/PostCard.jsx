@@ -2,62 +2,94 @@
 Post card
 */
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import CommentItem from "./CommentItem";
 import { createComment, deleteComment, getComments } from "../api/comments";
-import { addReaction, getReactions, removeReaction } from "../api/reactions";
+import { addReaction, getReactionUsers, getReactions, removeReaction } from "../api/reactions";
+import { purchasePost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import { useAuth } from "../context/AuthContext";
+import { resolveMediaUrl } from "../utils/media";
 
-function PostCard({ post }) {
-    const { user } = useAuth();
+function PostCard({
+    post,
+    showOpenButton = true,
+    showBackButton = false,
+    onBack = null,
+    onPurchased = null,
+    onTagClick = null
+}) {
+    const { user, refreshUser } = useAuth();
+    const location = useLocation();
     const [comments, setComments] = useState([]);
     const [text, setText] = useState("");
     const [reactions, setReactions] = useState([]);
+    const [reactionUsers, setReactionUsers] = useState([]);
     const [commentLoading, setCommentLoading] = useState(false);
     const [reactionLoading, setReactionLoading] = useState(false);
+    const [purchaseLoading, setPurchaseLoading] = useState(false);
+    const [likersLoading, setLikersLoading] = useState(false);
     const [commentError, setCommentError] = useState("");
     const [reactionError, setReactionError] = useState("");
+    const [purchaseError, setPurchaseError] = useState("");
     const [hasReacted, setHasReacted] = useState(false);
+    const [showLikers, setShowLikers] = useState(false);
+
+    const isAuthor = Number(user?.id) === Number(post?.author_id);
+    const isLocked = Boolean(post?.is_locked);
+    const canViewContent = Boolean(post?.can_view_content);
+    const postLinkState = {
+        from: location.pathname + location.search,
+        scrollY: window.scrollY
+    };
 
     useEffect(() => {
-        if (!post?.id) {
-            console.warn("[post-card] missing post id", post);
+        if (!post?.id || isLocked) {
+            setComments([]);
+            setReactions([]);
+            setReactionUsers([]);
             return;
         }
 
         loadComments();
         loadReactions();
-    }, [post?.id]);
+    }, [post?.id, isLocked]);
 
     async function loadComments() {
         try {
-            console.info("[post-card] loading comments", { postId: post.id });
             const res = await getComments(post.id);
-            console.info("[post-card] comments response", res);
             setComments(Array.isArray(res) ? res : []);
             setCommentError("");
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] comments failed", err);
-            setCommentError(message);
+            setCommentError(getApiErrorMessage(err));
             setComments([]);
         }
     }
 
     async function loadReactions() {
         try {
-            console.info("[post-card] loading reactions", { postId: post.id });
             const res = await getReactions(post.id);
-            console.info("[post-card] reactions response", res);
             setReactions(Array.isArray(res) ? res : []);
             setReactionError("");
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] reactions failed", err);
-            setReactionError(message);
+            setReactionError(getApiErrorMessage(err));
             setReactions([]);
+        }
+    }
+
+    async function loadReactionUsers() {
+        setLikersLoading(true);
+
+        try {
+            const data = await getReactionUsers(post.id);
+            setReactionUsers(Array.isArray(data) ? data : []);
+            setReactionError("");
+        } catch (err) {
+            setReactionError(getApiErrorMessage(err));
+            setReactionUsers([]);
+        } finally {
+            setLikersLoading(false);
         }
     }
 
@@ -68,16 +100,13 @@ function PostCard({ post }) {
         try {
             await createComment({
                 postId: post.id,
-                content: text
+                content: text.trim()
             });
 
-            console.info("[post-card] comment created", { postId: post.id });
             setText("");
             await loadComments();
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] comment failed", err);
-            setCommentError(message);
+            setCommentError(getApiErrorMessage(err));
         } finally {
             setCommentLoading(false);
         }
@@ -89,13 +118,13 @@ function PostCard({ post }) {
 
         try {
             await addReaction(post.id);
-            console.info("[post-card] reaction created", { postId: post.id });
             setHasReacted(true);
             await loadReactions();
+            if (showLikers) {
+                await loadReactionUsers();
+            }
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] reaction failed", err);
-            setReactionError(message);
+            setReactionError(getApiErrorMessage(err));
         } finally {
             setReactionLoading(false);
         }
@@ -107,13 +136,13 @@ function PostCard({ post }) {
 
         try {
             await removeReaction(post.id);
-            console.info("[post-card] reaction removed", { postId: post.id });
             setHasReacted(false);
             await loadReactions();
+            if (showLikers) {
+                await loadReactionUsers();
+            }
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] reaction removal failed", err);
-            setReactionError(message);
+            setReactionError(getApiErrorMessage(err));
         } finally {
             setReactionLoading(false);
         }
@@ -125,14 +154,37 @@ function PostCard({ post }) {
 
         try {
             await deleteComment(commentId);
-            console.info("[post-card] comment deleted", { commentId, postId: post.id });
             await loadComments();
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-card] comment deletion failed", err);
-            setCommentError(message);
+            setCommentError(getApiErrorMessage(err));
         } finally {
             setCommentLoading(false);
+        }
+    }
+
+    async function handlePurchase() {
+        setPurchaseLoading(true);
+        setPurchaseError("");
+
+        try {
+            await purchasePost(post.id);
+            await refreshUser();
+            if (typeof onPurchased === "function") {
+                await onPurchased();
+            }
+        } catch (err) {
+            setPurchaseError(getApiErrorMessage(err));
+        } finally {
+            setPurchaseLoading(false);
+        }
+    }
+
+    async function handleToggleLikers() {
+        const nextState = !showLikers;
+        setShowLikers(nextState);
+
+        if (nextState) {
+            await loadReactionUsers();
         }
     }
 
@@ -143,11 +195,19 @@ function PostCard({ post }) {
         const key = item.id || `${itemType}-${mediaUrl || textValue}`;
 
         if (itemType === "image" && mediaUrl) {
-            return <img key={key} src={mediaUrl} alt="" style={{ maxWidth: "100%" }} />;
+            return (
+                <div key={key} className="post-card__media">
+                    <img src={resolveMediaUrl(mediaUrl)} alt="" />
+                </div>
+            );
         }
 
         if (itemType === "video" && mediaUrl) {
-            return <video key={key} src={mediaUrl} controls style={{ maxWidth: "100%" }} />;
+            return (
+                <div key={key} className="post-card__media">
+                    <video src={resolveMediaUrl(mediaUrl)} controls />
+                </div>
+            );
         }
 
         if (textValue) {
@@ -159,118 +219,209 @@ function PostCard({ post }) {
 
     return (
         <article className="card post-card">
+            {showBackButton && onBack && (
+                <div className="post-card__toolbar">
+                    <button className="btn btn--secondary" onClick={onBack}>
+                        Back to feed
+                    </button>
+                </div>
+            )}
+
             <div className="post-card__head">
                 <div className="post-card__title-row">
-                    <h2 className="post-card__title">
-                        <Link to={`/posts/${post.id}`}>{post.title || `Post #${post.id}`}</Link>
-                    </h2>
+                    <div className="post-card__identity">
+                        <img
+                            className="avatar avatar--md"
+                            src={resolveMediaUrl(post.author_avatar_url)}
+                            alt=""
+                        />
 
-                    {post.author_id && (
-                        <Link className="post-card__author-link" to={`/users/${post.author_id}`}>
-                            {post.authorName || post.author_username || `User #${post.author_id}`}
-                        </Link>
-                    )}
+                        <div>
+                            <h2 className="post-card__title">
+                                <Link to={`/posts/${post.id}`} state={postLinkState}>
+                                    {post.title || `Post #${post.id}`}
+                                </Link>
+                            </h2>
+
+                            {post.author_id && (
+                                <Link className="post-card__author-link" to={`/users/${post.author_id}`}>
+                                    {post.authorName || post.author_username || `User #${post.author_id}`}
+                                </Link>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="post-card__meta">
-                    <span>
-                        {post.created_at ? new Date(post.created_at).toLocaleString() : ""}
-                    </span>
+                    <span>{post.created_at ? new Date(post.created_at).toLocaleString() : ""}</span>
                     {post.access_type && <span>Access: {post.access_type}</span>}
                     {typeof post.price === "number" && post.access_type === "paid" && (
                         <span>Price: {post.price}</span>
                     )}
                 </div>
+
+                {Array.isArray(post.tags) && post.tags.length > 0 && (
+                    <div className="tag-row">
+                        {post.tags.map((tag) => (
+                            <button
+                                key={tag}
+                                className="tag-chip"
+                                onClick={() => onTagClick && onTagClick(tag)}
+                                disabled={!onTagClick}
+                            >
+                                #{tag}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="post-card__content">
                 {post.description && <p>{post.description}</p>}
 
-                <div className="post-card__content-items">
-                    {Array.isArray(post.content) && post.content.length > 0
-                        ? post.content.map(renderContentItem)
-                        : <p>Post content is empty.</p>}
-                </div>
+                {canViewContent ? (
+                    <div className="post-card__content-items">
+                        {Array.isArray(post.content) && post.content.length > 0
+                            ? post.content.map(renderContentItem)
+                            : <p>Post content is empty.</p>}
+                    </div>
+                ) : (
+                    <div className="muted-box">
+                        This is a paid post. Purchase it to unlock the content.
+                    </div>
+                )}
             </div>
 
             <div className="post-card__actions">
-                <button
-                    className="btn btn--secondary"
-                    onClick={handleLike}
-                    disabled={reactionLoading || !post?.id}
-                >
-                    {reactionLoading ? "Saving..." : "Like"}
-                </button>
+                {canViewContent ? (
+                    <>
+                        <button
+                            className="btn btn--secondary"
+                            onClick={handleLike}
+                            disabled={reactionLoading || !post?.id}
+                        >
+                            {reactionLoading ? "Saving..." : "Like"}
+                        </button>
 
-                <button
-                    className="btn btn--secondary"
-                    onClick={handleRemoveReaction}
-                    disabled={reactionLoading || !post?.id || !hasReacted}
-                >
-                    {reactionLoading ? "Saving..." : "Remove reaction"}
-                </button>
+                        <button
+                            className="btn btn--secondary"
+                            onClick={handleRemoveReaction}
+                            disabled={reactionLoading || !post?.id || !hasReacted}
+                        >
+                            {reactionLoading ? "Saving..." : "Remove reaction"}
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        className="btn btn--primary"
+                        onClick={handlePurchase}
+                        disabled={purchaseLoading}
+                    >
+                        {purchaseLoading ? "Purchasing..." : `Buy for ${post.price}`}
+                    </button>
+                )}
 
-                <Link className="btn btn--secondary" to={`/posts/${post.id}`}>
-                    Open post
-                </Link>
+                {showOpenButton && (
+                    <Link className="btn btn--secondary" to={`/posts/${post.id}`} state={postLinkState}>
+                        Open post
+                    </Link>
+                )}
+
+                {isAuthor && canViewContent && (
+                    <button className="btn btn--secondary" onClick={handleToggleLikers}>
+                        {showLikers ? "Hide likers" : "View likers"}
+                    </button>
+                )}
 
                 <div className="post-card__stats">
                     {reactions.length > 0
-                        ? reactions.map((r) => `${r.type}: ${r.count}`).join(" • ")
+                        ? reactions.map((item) => `${item.type}: ${item.count}`).join(" | ")
                         : "No reactions yet"}
                 </div>
             </div>
 
-            <div className="post-card__comments">
-                <h3 className="comments-title">Comments</h3>
+            {purchaseError && <div className="post-card__message muted-box">{purchaseError}</div>}
+            {reactionError && <div className="post-card__message muted-box">{reactionError}</div>}
 
-                {comments.length > 0 ? (
-                    <div className="comment-list">
-                        {comments.map((c) => (
-                            <CommentItem
-                                key={c.id}
-                                comment={c}
-                                actions={
-                                    user?.id === c.author_id ? (
-                                        <button
-                                            className="btn btn--danger"
-                                            onClick={() => handleDeleteComment(c.id)}
-                                            disabled={commentLoading}
-                                        >
-                                            Delete
-                                        </button>
-                                    ) : null
-                                }
-                            />
+            {showLikers && (
+                <div className="post-card__likers">
+                    {likersLoading && <div className="muted-box">Loading likers...</div>}
+
+                    {!likersLoading && reactionUsers.length === 0 && (
+                        <div className="muted-box">No likes yet.</div>
+                    )}
+
+                    <div className="user-grid user-grid--compact">
+                        {reactionUsers.map((item) => (
+                            <Link key={`${item.id}-${item.created_at}`} className="user-card" to={`/users/${item.id}`}>
+                                <img
+                                    className="avatar avatar--sm"
+                                    src={resolveMediaUrl(item.avatar_url)}
+                                    alt=""
+                                />
+                                <div>
+                                    <div className="user-card__name">
+                                        {item.display_name || item.username}
+                                    </div>
+                                    <div className="user-card__meta">@{item.username}</div>
+                                </div>
+                            </Link>
                         ))}
                     </div>
-                ) : (
-                    <div className="muted-box">No comments yet.</div>
-                )}
-
-                {reactionError && <div className="muted-box">{reactionError}</div>}
-                {commentError && <div className="muted-box">{commentError}</div>}
-
-                <div className="comment-form">
-                    <div className="comment-form__row">
-                        <textarea
-                            className="field__textarea"
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            disabled={commentLoading || !post?.id}
-                            placeholder="Write a comment"
-                        />
-                    </div>
-
-                    <button
-                        className="btn btn--primary"
-                        onClick={handleComment}
-                        disabled={commentLoading || !text.trim() || !post?.id}
-                    >
-                        {commentLoading ? "Saving..." : "Add comment"}
-                    </button>
                 </div>
-            </div>
+            )}
+
+            {canViewContent && (
+                <div className="post-card__comments">
+                    <h3 className="comments-title">Comments</h3>
+
+                    {comments.length > 0 ? (
+                        <div className="comment-list">
+                            {comments.map((comment) => (
+                                <CommentItem
+                                    key={comment.id}
+                                    comment={comment}
+                                    actions={
+                                        Number(user?.id) === Number(comment.author_id) ? (
+                                            <button
+                                                className="btn btn--danger"
+                                                onClick={() => handleDeleteComment(comment.id)}
+                                                disabled={commentLoading}
+                                            >
+                                                Delete
+                                            </button>
+                                        ) : null
+                                    }
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="muted-box">No comments yet.</div>
+                    )}
+
+                    {commentError && <div className="muted-box">{commentError}</div>}
+
+                    <div className="comment-form">
+                        <div className="comment-form__row">
+                            <textarea
+                                className="field__textarea"
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                                disabled={commentLoading || !post?.id}
+                                placeholder="Write a comment"
+                            />
+                        </div>
+
+                        <button
+                            className="btn btn--primary"
+                            onClick={handleComment}
+                            disabled={commentLoading || !text.trim() || !post?.id}
+                        >
+                            {commentLoading ? "Saving..." : "Add comment"}
+                        </button>
+                    </div>
+                </div>
+            )}
         </article>
     );
 }

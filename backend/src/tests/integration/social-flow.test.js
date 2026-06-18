@@ -42,7 +42,8 @@ describe("Social flow", () => {
                 title: "social post",
                 description: "social description",
                 content: [{ type: "text", value: "social content" }],
-                access: { type: "free" }
+                tags: ["social"],
+                access: { type: "paid", price: 20 }
             });
 
         const postId = responseData(postRes).postId;
@@ -70,6 +71,13 @@ describe("Social flow", () => {
 
         expect(feedRes.statusCode).toBe(200);
         expect(responseData(feedRes).some((post) => post.id === postId)).toBe(true);
+        expect(responseData(feedRes).find((post) => post.id === postId).is_locked).toBe(true);
+
+        const purchaseRes = await request(app)
+            .post(apiPath(`/posts/${postId}/purchase`))
+            .set("Authorization", `Bearer ${readerToken}`);
+
+        expect(purchaseRes.statusCode).toBe(200);
 
         const commentRes = await request(app)
             .post(apiPath("/comments"))
@@ -95,6 +103,7 @@ describe("Social flow", () => {
         expect(postDetailRes.statusCode).toBe(200);
         expect(responseData(postDetailRes).post.title).toBe("social post");
         expect(responseData(postDetailRes).post.author_username).toBe("social_author");
+        expect(responseData(postDetailRes).tags).toContain("social");
 
         const commentsRes = await request(app).get(apiPath(`/comments/post/${postId}`));
         expect(commentsRes.statusCode).toBe(200);

@@ -1,30 +1,34 @@
-/*
-Create post page
-*/
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 function CreatePostPage() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [text, setText] = useState("");
     const [imageUrl, setImageUrl] = useState("");
+    const [imageFile, setImageFile] = useState(null);
+    const [tagsInput, setTagsInput] = useState("");
     const [accessType, setAccessType] = useState("free");
     const [price, setPrice] = useState("0");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const navigate = useNavigate();
 
-    async function handleCreate(e) {
-        e.preventDefault();
+    async function handleCreate(event) {
+        event.preventDefault();
         setSubmitting(true);
         setError("");
-        setSuccess("");
-        console.info("[post-create] submit", { title });
 
         try {
             const content = [];
@@ -33,7 +37,10 @@ function CreatePostPage() {
                 content.push({ type: "text", value: text.trim() });
             }
 
-            if (imageUrl.trim()) {
+            if (imageFile) {
+                const dataUrl = await readFileAsDataUrl(imageFile);
+                content.push({ type: "image", value: dataUrl });
+            } else if (imageUrl.trim()) {
                 content.push({ type: "image", value: imageUrl.trim() });
             }
 
@@ -41,32 +48,27 @@ function CreatePostPage() {
                 title,
                 description,
                 content,
+                tags: tagsInput.split(",").map((tag) => tag.trim()).filter(Boolean),
                 access: {
                     type: accessType,
                     price: Number(price || 0)
                 }
             });
 
-            console.info("[post-create] response", result);
-            setTitle("");
-            setDescription("");
-            setText("");
-            setImageUrl("");
-            setSuccess("Post created. Redirecting to feed...");
             navigate(`/posts/${result.postId}`, { replace: true });
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[post-create] failed", err);
-            setError(message);
+            setError(getApiErrorMessage(err));
         } finally {
             setSubmitting(false);
         }
     }
 
     return (
-        <>
-            <h1 className="page-title">Create post</h1>
-            <p className="page-subtitle">Publish new content and choose access settings.</p>
+        <div className="page-stack">
+            <div className="page-heading">
+                <h1 className="page-title">Create post</h1>
+                <p className="page-subtitle">Publish free or paid content, with tags and an uploaded image.</p>
+            </div>
 
             <div className="card">
                 <div className="card__body">
@@ -77,7 +79,7 @@ function CreatePostPage() {
                                 className="field__input"
                                 placeholder="Post title"
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(event) => setTitle(event.target.value)}
                                 disabled={submitting}
                             />
                         </label>
@@ -88,7 +90,18 @@ function CreatePostPage() {
                                 className="field__input"
                                 placeholder="Short description"
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                onChange={(event) => setDescription(event.target.value)}
+                                disabled={submitting}
+                            />
+                        </label>
+
+                        <label className="field">
+                            <span className="field__label">Tags</span>
+                            <input
+                                className="field__input"
+                                placeholder="design, music, premium"
+                                value={tagsInput}
+                                onChange={(event) => setTagsInput(event.target.value)}
                                 disabled={submitting}
                             />
                         </label>
@@ -99,7 +112,7 @@ function CreatePostPage() {
                                 <select
                                     className="field__select"
                                     value={accessType}
-                                    onChange={(e) => setAccessType(e.target.value)}
+                                    onChange={(event) => setAccessType(event.target.value)}
                                     disabled={submitting}
                                 >
                                     <option value="free">Free</option>
@@ -115,7 +128,7 @@ function CreatePostPage() {
                                     step="0.01"
                                     min="0"
                                     value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
+                                    onChange={(event) => setPrice(event.target.value)}
                                     disabled={submitting || accessType !== "paid"}
                                 />
                             </label>
@@ -127,24 +140,34 @@ function CreatePostPage() {
                                 className="field__textarea"
                                 placeholder="Write your post text"
                                 value={text}
-                                onChange={(e) => setText(e.target.value)}
+                                onChange={(event) => setText(event.target.value)}
                                 disabled={submitting}
                             />
                         </label>
 
                         <label className="field">
-                            <span className="field__label">Image URL</span>
+                            <span className="field__label">Image file</span>
                             <input
                                 className="field__input"
-                                placeholder="https://..."
-                                value={imageUrl}
-                                onChange={(e) => setImageUrl(e.target.value)}
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => setImageFile(event.target.files?.[0] || null)}
                                 disabled={submitting}
                             />
                         </label>
 
+                        <label className="field">
+                            <span className="field__label">Image URL fallback</span>
+                            <input
+                                className="field__input"
+                                placeholder="https://..."
+                                value={imageUrl}
+                                onChange={(event) => setImageUrl(event.target.value)}
+                                disabled={submitting || Boolean(imageFile)}
+                            />
+                        </label>
+
                         {error && <div className="muted-box">{error}</div>}
-                        {success && <div className="muted-box">{success}</div>}
 
                         <div className="form-actions">
                             <button className="btn btn--primary" type="submit" disabled={submitting}>
@@ -154,7 +177,7 @@ function CreatePostPage() {
                     </form>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 

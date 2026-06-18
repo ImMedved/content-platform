@@ -8,7 +8,7 @@ Layout
 - page container
 */
 
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Layout({ children }) {
@@ -24,10 +24,10 @@ function Layout({ children }) {
         <div className="app-shell">
             <header className="site-header">
                 <div className="site-header__inner">
-                    <div className="brand">
+                    <Link className="brand" to="/">
                         <div className="brand__logo">S</div>
                         <div className="brand__name">Smart Content Platform</div>
-                    </div>
+                    </Link>
 
                     <nav className="navbar">
                         <NavLink
@@ -40,12 +40,12 @@ function Layout({ children }) {
                         </NavLink>
 
                         <NavLink
-                            to="/create"
+                            to="/following"
                             className={({ isActive }) =>
                                 `navbar__link ${isActive ? "navbar__link--active" : ""}`
                             }
                         >
-                            Create
+                            Following
                         </NavLink>
 
                         {user?.id && (
@@ -64,6 +64,11 @@ function Layout({ children }) {
                         <span className="header-user__name">
                             {user?.display_name || user?.username || "User"}
                         </span>
+                        {typeof user?.wallet_balance === "number" && (
+                            <span className="header-user__wallet">
+                                Wallet: {user.wallet_balance}
+                            </span>
+                        )}
                         <button className="btn btn--secondary" onClick={handleLogout}>
                             Logout
                         </button>

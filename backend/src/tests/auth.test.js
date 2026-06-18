@@ -47,4 +47,30 @@ describe("Auth API", () => {
         expect(responseData(res).token).toBeDefined();
     });
 
+    it("should create starter wallet on registration", async () => {
+        const walletEmail = `wallet_${Date.now()}@test.com`;
+
+        await request(app)
+            .post(apiPath("/auth/register"))
+            .send({
+                username: "wallet_test",
+                email: walletEmail,
+                password: "123456"
+            });
+
+        const loginRes = await request(app)
+            .post(apiPath("/auth/login"))
+            .send({
+                email: walletEmail,
+                password: "123456"
+            });
+
+        const meRes = await request(app)
+            .get(apiPath("/users/me"))
+            .set("Authorization", `Bearer ${responseData(loginRes).token}`);
+
+        expect(meRes.statusCode).toBe(200);
+        expect(responseData(meRes).wallet_balance).toBe(100);
+    });
+
 });

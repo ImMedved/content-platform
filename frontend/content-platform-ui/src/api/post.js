@@ -19,3 +19,8 @@ export async function getPost(id) {
     const res = await client.get(`/posts/${id}`);
     return unwrapApiResponse(res);
 }
+
+export async function purchasePost(id) {
+    const res = await client.post(`/posts/${id}/purchase`);
+    return unwrapApiResponse(res);
+}

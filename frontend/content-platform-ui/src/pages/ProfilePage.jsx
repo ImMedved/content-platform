@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../api/follow";
 import { getApiErrorMessage } from "../api/response";
 import {
@@ -7,14 +7,25 @@ import {
     getMyProfile,
     getUserFollowers,
     getUserFollowing,
-    getUserProfile
+    getUserProfile,
+    updateMe
 } from "../api/user";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
+import { resolveMediaUrl } from "../utils/media";
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 function ProfilePage() {
     const { id = "me" } = useParams();
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, refreshUser } = useAuth();
     const [profile, setProfile] = useState(null);
     const [posts, setPosts] = useState([]);
     const [followers, setFollowers] = useState([]);
@@ -22,8 +33,16 @@ function ProfilePage() {
     const [myFollowingIds, setMyFollowingIds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [followLoading, setFollowLoading] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
     const [error, setError] = useState("");
     const [actionMessage, setActionMessage] = useState("");
+    const [editForm, setEditForm] = useState({
+        display_name: "",
+        bio: "",
+        status: "",
+        avatar_url: ""
+    });
+    const [avatarFile, setAvatarFile] = useState(null);
 
     useEffect(() => {
         loadProfile();
@@ -33,14 +52,12 @@ function ProfilePage() {
         setLoading(true);
         setError("");
         setActionMessage("");
-        console.info("[profile] loading profile", { id });
 
         try {
             const profileResponse = id === "me"
                 ? await getMyProfile()
                 : await getUserProfile(id);
             const profileData = profileResponse?.user || null;
-            console.info("[profile] user response", profileData);
 
             if (!profileData?.id) {
                 throw new Error("User was not found");
@@ -52,19 +69,19 @@ function ProfilePage() {
                 getMyFollowing()
             ]);
 
-            console.info("[profile] posts response", profileResponse?.posts);
-
             setProfile(profileData);
             setPosts(Array.isArray(profileResponse?.posts) ? profileResponse.posts : []);
             setFollowers(Array.isArray(followersData) ? followersData : []);
             setFollowing(Array.isArray(followingData) ? followingData : []);
-            setMyFollowingIds(
-                Array.isArray(myFollowingData) ? myFollowingData.map((item) => item.id) : []
-            );
+            setMyFollowingIds(Array.isArray(myFollowingData) ? myFollowingData.map((item) => item.id) : []);
+            setEditForm({
+                display_name: profileData.display_name || "",
+                bio: profileData.bio || "",
+                status: profileData.status || "",
+                avatar_url: profileData.avatar_url || ""
+            });
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[profile] failed", err);
-            setError(message);
+            setError(getApiErrorMessage(err));
             setProfile(null);
             setPosts([]);
             setFollowers([]);
@@ -86,30 +103,44 @@ function ProfilePage() {
             if (myFollowingIds.includes(profile.id)) {
                 await unfollowUser(profile.id);
                 setMyFollowingIds((current) => current.filter((item) => item !== profile.id));
-                setFollowers((current) =>
-                    current.filter((item) => item.id !== currentUser?.id)
-                );
+                setFollowers((current) => current.filter((item) => item.id !== currentUser?.id));
                 setActionMessage("Unfollowed successfully.");
             } else {
                 await followUser(profile.id);
                 setMyFollowingIds((current) => [...current, profile.id]);
                 if (currentUser) {
-                    setFollowers((current) => {
-                        if (current.some((item) => item.id === currentUser.id)) {
-                            return current;
-                        }
-
-                        return [...current, currentUser];
-                    });
+                    setFollowers((current) => current.some((item) => item.id === currentUser.id) ? current : [...current, currentUser]);
                 }
-                setActionMessage("Followed successfully. Feed will show this user's posts.");
+                setActionMessage("Followed successfully.");
             }
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[profile] follow toggle failed", err);
-            setError(message);
+            setError(getApiErrorMessage(err));
         } finally {
             setFollowLoading(false);
+        }
+    }
+
+    async function handleProfileSave(event) {
+        event.preventDefault();
+        setSavingProfile(true);
+        setError("");
+        setActionMessage("");
+
+        try {
+            const payload = { ...editForm };
+
+            if (avatarFile) {
+                payload.avatar_file = await readFileAsDataUrl(avatarFile);
+            }
+
+            const updated = await updateMe(payload);
+            await refreshUser();
+            setProfile(updated);
+            setActionMessage("Profile updated.");
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+        } finally {
+            setSavingProfile(false);
         }
     }
 
@@ -117,16 +148,34 @@ function ProfilePage() {
     const isFollowingProfile = profile ? myFollowingIds.includes(profile.id) : false;
 
     return (
-        <div>
-            <h1 className="page-title">Profile</h1>
+        <div className="page-stack">
+            <div className="page-heading">
+                <div>
+                    <h1 className="page-title">Profile</h1>
+                    {typeof profile?.wallet_balance === "number" && (
+                        <p className="page-subtitle">Wallet balance: {profile.wallet_balance}</p>
+                    )}
+                </div>
+
+                {isOwnProfile && (
+                    <Link className="btn btn--primary" to="/create">
+                        Create post
+                    </Link>
+                )}
+            </div>
 
             {loading && <div className="muted-box">Loading profile...</div>}
             {error && <div className="muted-box">{error}</div>}
+            {actionMessage && <div className="muted-box">{actionMessage}</div>}
 
             {profile && !loading && (
                 <div className="profile-layout">
                     <div className="profile-header">
-                        <div className="profile-avatar" />
+                        <img
+                            className="profile-avatar profile-avatar--image"
+                            src={resolveMediaUrl(editForm.avatar_url || profile.avatar_url)}
+                            alt=""
+                        />
 
                         <div className="card profile-info">
                             <h2 className="profile-name">
@@ -136,6 +185,7 @@ function ProfilePage() {
                             <p className="profile-bio">{profile.bio || "No bio yet."}</p>
 
                             <div className="profile-stats">
+                                <span>Status: {profile.status || "active"}</span>
                                 <span>Followers: {followers.length}</span>
                                 <span>Following: {following.length}</span>
                                 <span>Email: {profile.email}</span>
@@ -148,24 +198,133 @@ function ProfilePage() {
                                         onClick={handleFollowToggle}
                                         disabled={followLoading}
                                     >
-                                        {followLoading
-                                            ? "Saving..."
-                                            : isFollowingProfile
-                                                ? "Unfollow"
-                                                : "Follow"}
+                                        {followLoading ? "Saving..." : isFollowingProfile ? "Unfollow" : "Follow"}
                                     </button>
                                 </div>
                             )}
-
-                            {actionMessage && <div className="muted-box">{actionMessage}</div>}
                         </div>
+                    </div>
+
+                    {isOwnProfile && (
+                        <div className="card">
+                            <div className="card__body">
+                                <form className="form-grid" onSubmit={handleProfileSave}>
+                                    <div className="profile-panel__header">
+                                        <h3 className="page-title page-title--section">Edit profile</h3>
+                                    </div>
+
+                                    <label className="field">
+                                        <span className="field__label">Display name</span>
+                                        <input
+                                            className="field__input"
+                                            value={editForm.display_name}
+                                            onChange={(event) => setEditForm((current) => ({
+                                                ...current,
+                                                display_name: event.target.value
+                                            }))}
+                                        />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="field__label">Status</span>
+                                        <input
+                                            className="field__input"
+                                            value={editForm.status}
+                                            onChange={(event) => setEditForm((current) => ({
+                                                ...current,
+                                                status: event.target.value
+                                            }))}
+                                        />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="field__label">Bio</span>
+                                        <textarea
+                                            className="field__textarea"
+                                            value={editForm.bio}
+                                            onChange={(event) => setEditForm((current) => ({
+                                                ...current,
+                                                bio: event.target.value
+                                            }))}
+                                        />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="field__label">Avatar file</span>
+                                        <input
+                                            className="field__input"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(event) => setAvatarFile(event.target.files?.[0] || null)}
+                                        />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="field__label">Avatar URL fallback</span>
+                                        <input
+                                            className="field__input"
+                                            value={editForm.avatar_url}
+                                            onChange={(event) => setEditForm((current) => ({
+                                                ...current,
+                                                avatar_url: event.target.value
+                                            }))}
+                                            disabled={Boolean(avatarFile)}
+                                        />
+                                    </label>
+
+                                    <div className="form-actions">
+                                        <button className="btn btn--primary" type="submit" disabled={savingProfile}>
+                                            {savingProfile ? "Saving..." : "Save profile"}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="profile-lists">
+                        <section className="card">
+                            <div className="card__body">
+                                <h3 className="page-title page-title--section">Followers</h3>
+                                <div className="user-grid user-grid--compact">
+                                    {followers.map((item) => (
+                                        <Link key={`follower-${item.id}`} className="user-card" to={`/users/${item.id}`}>
+                                            <img className="avatar avatar--sm" src={resolveMediaUrl(item.avatar_url)} alt="" />
+                                            <div>
+                                                <div className="user-card__name">{item.display_name || item.username}</div>
+                                                <div className="user-card__meta">@{item.username}</div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                    {followers.length === 0 && <div className="muted-box">No followers yet.</div>}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="card">
+                            <div className="card__body">
+                                <h3 className="page-title page-title--section">Following</h3>
+                                <div className="user-grid user-grid--compact">
+                                    {following.map((item) => (
+                                        <Link key={`following-${item.id}`} className="user-card" to={`/users/${item.id}`}>
+                                            <img className="avatar avatar--sm" src={resolveMediaUrl(item.avatar_url)} alt="" />
+                                            <div>
+                                                <div className="user-card__name">{item.display_name || item.username}</div>
+                                                <div className="user-card__meta">@{item.username}</div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                    {following.length === 0 && <div className="muted-box">No subscriptions yet.</div>}
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
                     <section className="post-list">
                         <h3 className="page-title page-title--section">User posts</h3>
                         {posts.length === 0 && <div className="muted-box">No posts yet.</div>}
                         {posts.map((post) => (
-                            <PostCard key={post.id} post={post} />
+                            <PostCard key={post.id} post={post} onTagClick={() => null} onPurchased={loadProfile} />
                         ))}
                     </section>
                 </div>

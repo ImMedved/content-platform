@@ -41,6 +41,7 @@ describe("User API", () => {
         expect(res.statusCode).toBe(200);
         expect(responseData(res).id).toBeDefined();
         expect(Array.isArray(responseData(res).posts)).toBe(true);
+        expect(responseData(res).wallet_balance).toBe(100);
     });
 
     it("should return user profile by id", async () => {
@@ -78,6 +79,24 @@ describe("User API", () => {
 
         expect(followersRes.statusCode).toBe(200);
         expect(Array.isArray(responseData(followersRes))).toBe(true);
+    });
+
+    it("should update current user profile", async () => {
+        const res = await request(app)
+            .put(apiPath("/users/me"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                display_name: "Updated User",
+                bio: "Updated bio",
+                status: "creator",
+                avatar_url: "https://example.com/avatar.png"
+            });
+
+        expect(res.statusCode).toBe(200);
+        expect(responseData(res).display_name).toBe("Updated User");
+        expect(responseData(res).bio).toBe("Updated bio");
+        expect(responseData(res).status).toBe("creator");
+        expect(responseData(res).avatar_url).toBe("https://example.com/avatar.png");
     });
 
 });

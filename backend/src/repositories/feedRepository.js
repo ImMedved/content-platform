@@ -10,7 +10,8 @@ async function getFeed(userId, limit = 20) {
         SELECT
             p.*,
             u.username AS author_username,
-            u.display_name AS authorName
+            u.display_name AS authorName,
+            u.avatar_url AS author_avatar_url
         FROM post p
         INNER JOIN users u
           ON u.id = p.author_id

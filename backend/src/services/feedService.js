@@ -9,22 +9,24 @@ const redisClient = require("../config/redis");
 
 async function getFeed(userId) {
     const cacheKey = `feed:${userId}`;
-    // use cache only when redis client is connected
+    const postService = require("./postService");
+
     if (redisClient && redisClient.isOpen) {
         const cached = await redisClient.get(cacheKey);
         if (cached) {
             return JSON.parse(cached);
         }
 
-        const data = await feedRepo.getFeed(userId);
+        const rawPosts = await feedRepo.getFeed(userId);
+        const data = await postService.hydratePosts(rawPosts, userId);
 
         await redisClient.setEx(cacheKey, 60, JSON.stringify(data));
 
         return data;
     }
 
-    // fallback: fetch directly when no redis
-    return await feedRepo.getFeed(userId);
+    const rawPosts = await feedRepo.getFeed(userId);
+    return postService.hydratePosts(rawPosts, userId);
 }
 
 async function invalidateFeed(userId) {

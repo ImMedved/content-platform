@@ -89,4 +89,26 @@ describe("Feed API", () => {
         expect(res.body.data.some((post) => post.title === "my own feed post")).toBe(true);
     });
 
+    it("should hide content for paid followed posts before purchase", async () => {
+        await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token2}`)
+            .send({
+                title: "locked followed post",
+                description: "premium post",
+                content: [{ type: "text", value: "hidden body" }],
+                access: { type: "paid", price: 12 }
+            });
+
+        const res = await request(app)
+            .get(apiPath("/feed"))
+            .set("Authorization", `Bearer ${token1}`);
+
+        const paidPost = responseData(res).find((post) => post.title === "locked followed post");
+
+        expect(res.statusCode).toBe(200);
+        expect(paidPost.is_locked).toBe(true);
+        expect(paidPost.content).toHaveLength(0);
+    });
+
 });

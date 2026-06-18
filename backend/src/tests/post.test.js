@@ -50,6 +50,7 @@ describe("Post API", () => {
                 content: [
                     { type: "text", value: "hello" }
                 ],
+                tags: ["news", "test"],
                 access: { type: "free" }
             });
 
@@ -73,6 +74,75 @@ describe("Post API", () => {
         expect(responseData(res).post.id).toBe(postId);
         expect(responseData(res).post.title).toBe("seed post");
         expect(responseData(res).post.author_username).toBe("postuser");
+    });
+
+    it("should filter posts by tag", async () => {
+        await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                title: "tagged post",
+                description: "with tags",
+                content: [{ type: "text", value: "hello tags" }],
+                tags: ["music"],
+                access: { type: "free" }
+            });
+
+        const res = await request(app).get(apiPath("/posts?tag=music"));
+
+        expect(res.statusCode).toBe(200);
+        expect(responseData(res)).toHaveLength(1);
+        expect(responseData(res)[0].tags).toContain("music");
+    });
+
+    it("should require purchase for paid posts and unlock after purchase", async () => {
+        await request(app).post(apiPath("/auth/register")).send({
+            username: "buyer",
+            email: "buyer@test.com",
+            password: "123456"
+        });
+
+        const buyerLogin = await request(app).post(apiPath("/auth/login")).send({
+            email: "buyer@test.com",
+            password: "123456"
+        });
+        const buyerToken = responseToken(buyerLogin);
+
+        const paidPostRes = await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                title: "paid post",
+                description: "premium",
+                content: [{ type: "text", value: "secret body" }],
+                tags: ["premium"],
+                access: { type: "paid", price: 15 }
+            });
+
+        const paidPostId = responseData(paidPostRes).postId;
+
+        const lockedRes = await request(app)
+            .get(apiPath(`/posts/${paidPostId}`))
+            .set("Authorization", `Bearer ${buyerToken}`);
+
+        expect(lockedRes.statusCode).toBe(200);
+        expect(responseData(lockedRes).post.is_locked).toBe(true);
+        expect(responseData(lockedRes).content).toHaveLength(0);
+
+        const purchaseRes = await request(app)
+            .post(apiPath(`/posts/${paidPostId}/purchase`))
+            .set("Authorization", `Bearer ${buyerToken}`);
+
+        expect(purchaseRes.statusCode).toBe(200);
+        expect(responseData(purchaseRes).walletBalance).toBe(85);
+
+        const unlockedRes = await request(app)
+            .get(apiPath(`/posts/${paidPostId}`))
+            .set("Authorization", `Bearer ${buyerToken}`);
+
+        expect(unlockedRes.statusCode).toBe(200);
+        expect(responseData(unlockedRes).post.is_locked).toBe(false);
+        expect(responseData(unlockedRes).content).toHaveLength(1);
     });
 
 });

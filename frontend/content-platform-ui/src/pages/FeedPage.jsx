@@ -1,89 +1,156 @@
 /*
 Feed page
-- show posts
 */
 
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getFeed } from "../api/feed";
+import { getPosts } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import PostCard from "../components/PostCard";
 
 function FeedPage() {
-    const [posts, setPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const location = useLocation();
+    const [followedPosts, setFollowedPosts] = useState([]);
+    const [discoverPosts, setDiscoverPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [discoverLoading, setDiscoverLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [discoverError, setDiscoverError] = useState("");
+    const [tagFilter, setTagFilter] = useState("");
+    const [appliedTag, setAppliedTag] = useState("");
 
     useEffect(() => {
-        load();
+        loadFeed();
     }, []);
 
-    async function load() {
+    useEffect(() => {
+        loadDiscover(appliedTag);
+    }, [appliedTag]);
+
+    useEffect(() => {
+        if (typeof location.state?.restoreScrollY === "number") {
+            window.scrollTo({ top: location.state.restoreScrollY, behavior: "auto" });
+        }
+    }, [location.state]);
+
+    async function loadFeed() {
         setLoading(true);
         setError("");
-        console.info("[feed] loading personalized feed");
 
         try {
-            const res = await getFeed();
-            console.info("[feed] feed response", res);
-
-            if (!Array.isArray(res)) {
-                throw new Error("Feed response is not an array");
-            }
-
-            setPosts(res);
+            const data = await getFeed();
+            setFollowedPosts(Array.isArray(data) ? data : []);
         } catch (err) {
-            const message = getApiErrorMessage(err);
-            console.error("[feed] failed", err);
-            setError(message);
-            setPosts([]);
+            setError(getApiErrorMessage(err));
+            setFollowedPosts([]);
         } finally {
             setLoading(false);
         }
     }
 
+    async function loadDiscover(tag = "") {
+        setDiscoverLoading(true);
+        setDiscoverError("");
+
+        try {
+            const data = await getPosts(tag ? { tag } : {});
+            setDiscoverPosts(Array.isArray(data) ? data : []);
+        } catch (err) {
+            setDiscoverError(getApiErrorMessage(err));
+            setDiscoverPosts([]);
+        } finally {
+            setDiscoverLoading(false);
+        }
+    }
+
+    async function refreshAll() {
+        await Promise.all([loadFeed(), loadDiscover(appliedTag)]);
+    }
+
+    function handleTagSubmit(event) {
+        event.preventDefault();
+        setAppliedTag(tagFilter.trim().toLowerCase());
+    }
+
     return (
-        <>
-            <h1 className="page-title">Feed</h1>
-            <p className="page-subtitle">Recent publications from users you follow.</p>
+        <div className="page-stack">
+            <div className="page-heading">
+                <div>
+                    <h1 className="page-title">Feed</h1>
+                    <p className="page-subtitle">Followed posts first, new content right below.</p>
+                </div>
 
-            <div className="feed-layout">
-                <section className="post-list">
-                    {location.state?.success && (
-                        <div className="muted-box">{location.state.success}</div>
-                    )}
-                    {loading && <div className="muted-box">Loading posts...</div>}
-                    {error && <div className="muted-box">{error}</div>}
-                    {!loading && !error && posts.length === 0 && (
-                        <div className="center-empty card">
-                            <div className="card__body">
-                                Your feed is empty. Follow another user or publish your first post.
-                            </div>
-                        </div>
-                    )}
-
-                    {posts.map((p) => (
-                        <PostCard key={p.id} post={p} />
-                    ))}
-                </section>
-
-                <aside className="feed-sidebar">
-                    <div className="card sidebar-block">
-                        <h3 className="sidebar-title">Feed state</h3>
-                        <p className="sidebar-text">
-                            Posts loaded: {posts.length}
-                        </p>
-                    </div>
-
-                    <div className="card sidebar-block">
-                        <button className="btn btn--secondary btn--block" onClick={load}>
-                            Refresh feed
-                        </button>
-                    </div>
-                </aside>
+                <div className="page-actions">
+                    <Link className="btn btn--primary" to="/create">
+                        Create post
+                    </Link>
+                    <button className="btn btn--secondary" onClick={refreshAll}>
+                        Refresh
+                    </button>
+                </div>
             </div>
-        </>
+
+            {location.state?.success && <div className="muted-box">{location.state.success}</div>}
+
+            <section className="section-stack">
+                <div className="section-heading">
+                    <h2 className="page-title page-title--section">Following feed</h2>
+                </div>
+
+                {loading && <div className="muted-box">Loading posts...</div>}
+                {error && <div className="muted-box">{error}</div>}
+                {!loading && !error && followedPosts.length === 0 && (
+                    <div className="muted-box">
+                        Your following feed is empty. Follow a few authors or browse the latest posts below.
+                    </div>
+                )}
+
+                <div className="post-list">
+                    {followedPosts.map((post) => (
+                        <PostCard key={`followed-${post.id}`} post={post} onPurchased={loadFeed} onTagClick={setAppliedTag} />
+                    ))}
+                </div>
+            </section>
+
+            <section className="section-stack">
+                <div className="section-heading">
+                    <h2 className="page-title page-title--section">Latest posts</h2>
+                </div>
+
+                <form className="tag-search" onSubmit={handleTagSubmit}>
+                    <input
+                        className="field__input"
+                        placeholder="Search by tag"
+                        value={tagFilter}
+                        onChange={(event) => setTagFilter(event.target.value)}
+                    />
+                    <button className="btn btn--secondary" type="submit">
+                        Search
+                    </button>
+                    {appliedTag && (
+                        <button className="btn btn--secondary" type="button" onClick={() => {
+                            setTagFilter("");
+                            setAppliedTag("");
+                        }}>
+                            Clear
+                        </button>
+                    )}
+                </form>
+
+                {discoverLoading && <div className="muted-box">Loading latest posts...</div>}
+                {discoverError && <div className="muted-box">{discoverError}</div>}
+                {!discoverLoading && !discoverError && discoverPosts.length === 0 && (
+                    <div className="muted-box">No posts match the current tag filter.</div>
+                )}
+
+                <div className="post-list">
+                    {discoverPosts.map((post) => (
+                        <PostCard key={`discover-${post.id}`} post={post} onPurchased={() => loadDiscover(appliedTag)} onTagClick={setAppliedTag} />
+                    ))}
+                </div>
+            </section>
+        </div>
     );
 }
 

@@ -11,6 +11,7 @@ import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import ProfilePage from "./pages/ProfilePage";
 import PostPage from "./pages/PostPage";
+import FollowingPage from "./pages/FollowingPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -40,6 +41,17 @@ function App() {
                         <ProtectedRoute>
                             <Layout>
                                 <CreatePostPage />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/following"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <FollowingPage />
                             </Layout>
                         </ProtectedRoute>
                     }

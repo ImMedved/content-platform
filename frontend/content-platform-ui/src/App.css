@@ -134,6 +134,15 @@ button {
     font-size: 0.95rem;
 }
 
+.header-user__wallet {
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+}
+
 .site-main {
     flex: 1;
     padding: 28px 0 40px;
@@ -141,6 +150,30 @@ button {
 
 .page-container {
     width: 100%;
+}
+
+.page-stack {
+    display: grid;
+    gap: 22px;
+}
+
+.page-heading,
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.page-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.section-stack {
+    display: grid;
+    gap: 16px;
 }
 
 .page-title {
@@ -322,6 +355,12 @@ button {
     line-height: 1.5;
 }
 
+.tag-search {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .post-list {
     display: grid;
     gap: 18px;
@@ -331,9 +370,19 @@ button {
     overflow: hidden;
 }
 
+.post-card__toolbar {
+    padding: 16px 20px 0;
+}
+
 .post-card__head {
     padding: 18px 20px 14px;
     border-bottom: 1px solid var(--border);
+}
+
+.post-card__identity {
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
 .post-card__title-row {
@@ -384,8 +433,14 @@ button {
 .post-card__media img {
     display: block;
     width: 100%;
-    max-height: 420px;
+    max-height: 512px;
     object-fit: cover;
+}
+
+.post-card__media video {
+    display: block;
+    width: 100%;
+    max-height: 512px;
 }
 
 .post-card__actions {
@@ -411,6 +466,11 @@ button {
     padding: 0 20px 20px;
     border-top: 1px solid var(--border);
     background: var(--surface-soft);
+}
+
+.post-card__message,
+.post-card__likers {
+    margin: 16px 20px 0;
 }
 
 .comments-title {
@@ -442,6 +502,12 @@ button {
 .comment-item__author {
     font-weight: 600;
     color: var(--text);
+}
+
+.comment-item__author-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .comment-item__text {
@@ -488,6 +554,11 @@ button {
     border: 1px solid var(--border);
 }
 
+.profile-avatar--image {
+    width: 100%;
+    object-fit: cover;
+}
+
 .profile-info {
     padding: 20px;
 }
@@ -524,6 +595,18 @@ button {
     color: var(--muted);
 }
 
+.profile-lists {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .post-page {
     display: grid;
     gap: 18px;
@@ -552,6 +635,74 @@ button {
     color: var(--muted);
 }
 
+.avatar {
+    display: block;
+    border-radius: 999px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #dfe6f1, #cbd5e1);
+    border: 1px solid var(--border);
+}
+
+.avatar--sm {
+    width: 34px;
+    height: 34px;
+}
+
+.avatar--md {
+    width: 44px;
+    height: 44px;
+}
+
+.avatar--lg {
+    width: 72px;
+    height: 72px;
+}
+
+.tag-row {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tag-chip {
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    border-radius: 999px;
+    color: var(--muted);
+    padding: 8px 12px;
+}
+
+.user-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.user-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.user-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--surface);
+}
+
+.user-card__name {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.user-card__meta {
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
 @media (max-width: 980px) {
     .feed-layout {
         grid-template-columns: 1fr;
@@ -567,6 +718,10 @@ button {
 
     .profile-avatar {
         min-height: 180px;
+    }
+
+    .profile-lists {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -602,5 +757,10 @@ button {
 
     .form-grid--two {
         grid-template-columns: 1fr;
+    }
+
+    .page-heading,
+    .section-heading {
+        flex-direction: column;
     }
 }

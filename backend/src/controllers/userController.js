@@ -1,37 +1,50 @@
 /*
 User controller
 - get current user
-- current user info
+- update current user
 */
 
 const userRepo = require("../repositories/userRepository");
 const followService = require("../services/followService");
 const postService = require("../services/postService");
+const userService = require("../services/userService");
 const { ok, fail } = require("../utils/apiResponse");
 
 async function getMe(req, res) {
     try {
-        const user = await userRepo.findById(req.user.userId);
-        const posts = await postService.listPosts({
-            authorId: req.user.userId
-        });
+        const user = await userService.getMyProfile(req.user.userId);
+        const posts = await postService.listPosts(
+            { authorId: req.user.userId },
+            req.user.userId
+        );
         ok(res, { ...user, posts });
     } catch (err) {
         fail(res, 500, err.message);
     }
 }
 
+async function updateMe(req, res) {
+    try {
+        const user = await userService.updateMyProfile(req.user.userId, req.body);
+        ok(res, user);
+    } catch (err) {
+        fail(res, 400, err.message);
+    }
+}
+
 async function getUser(req, res) {
     try {
         const user = await userRepo.findById(req.params.id);
+
         if (!user) {
             ok(res, null);
             return;
         }
 
-        const posts = await postService.listPosts({
-            authorId: req.params.id
-        });
+        const posts = await postService.listPosts(
+            { authorId: req.params.id },
+            req.user?.userId || null
+        );
         ok(res, { ...user, posts });
     } catch (err) {
         fail(res, 500, err.message);
@@ -76,6 +89,7 @@ async function getFollowers(req, res) {
 
 module.exports = {
     getMe,
+    updateMe,
     getUser,
     getMyFollowing,
     getMyFollowers,

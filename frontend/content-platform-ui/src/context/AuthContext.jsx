@@ -22,7 +22,6 @@ export function AuthProvider({ children }) {
 
         try {
             const profileData = await getMyProfile();
-            console.info("[auth] current user loaded", profileData);
             setUser(profileData?.user || null);
             setAuthError("");
         } catch (err) {
@@ -35,24 +34,31 @@ export function AuthProvider({ children }) {
         }
     }
 
-    function login(token) {
-        if (!token || typeof token !== "string") {
+    function login(nextToken) {
+        if (!nextToken || typeof nextToken !== "string") {
             throw new Error("Login response does not include a valid token");
         }
 
-        console.info("[auth] storing token");
-        localStorage.setItem("token", token);
-        setToken(token);
+        localStorage.setItem("token", nextToken);
+        setToken(nextToken);
         setLoading(true);
         setAuthError("");
     }
 
     function logout() {
-        console.info("[auth] clearing session");
         localStorage.removeItem("token");
         setToken(null);
         setUser(null);
         setLoading(false);
+    }
+
+    async function refreshUser() {
+        if (!token) {
+            return;
+        }
+
+        setLoading(true);
+        await loadUser();
     }
 
     useEffect(() => {
@@ -70,6 +76,7 @@ export function AuthProvider({ children }) {
             user,
             login,
             logout,
+            refreshUser,
             loading,
             authError
         }}>

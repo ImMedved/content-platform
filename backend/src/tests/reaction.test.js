@@ -62,4 +62,22 @@ describe("Reaction API", () => {
         expect(afterRemoveRes.statusCode).toBe(200);
         expect(responseData(afterRemoveRes)).toHaveLength(0);
     });
+
+    it("should let the author view liked users", async () => {
+        await request(app)
+            .post(apiPath("/reactions"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                type: "like"
+            });
+
+        const likersRes = await request(app)
+            .get(apiPath(`/posts/${postId}/reactions/users`))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(likersRes.statusCode).toBe(200);
+        expect(responseData(likersRes)).toHaveLength(1);
+        expect(responseData(likersRes)[0].username).toBe("reaction_user");
+    });
 });

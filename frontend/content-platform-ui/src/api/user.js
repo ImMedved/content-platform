@@ -36,6 +36,11 @@ export async function getUserFollowers(id) {
     return unwrapApiResponse(res);
 }
 
+export async function updateMe(data) {
+    const res = await client.put("/users/me", data);
+    return unwrapApiResponse(res);
+}
+
 export async function getMyProfile() {
     const me = await getMe();
     const { posts = [], ...user } = me || {};

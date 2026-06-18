@@ -133,6 +133,21 @@ try {
         throw "User profile loading failed."
     }
 
+    if ($authorMe.wallet_balance -ne 100 -or $readerMe.wallet_balance -ne 100) {
+        throw "Starter wallet balance is invalid."
+    }
+
+    $updatedProfile = Invoke-Api -Method "PUT" -Path "/users/me" -Token $authorToken -Body @{
+        display_name = "Curl Author"
+        bio = "updated via curl"
+        status = "creator"
+        avatar_url = "https://example.com/avatar.png"
+    }
+
+    if ($updatedProfile.display_name -ne "Curl Author") {
+        throw "Profile update failed."
+    }
+
     $null = Invoke-Api -Method "POST" -Path "/follow/$($authorMe.id)" -Token $readerToken
 
     $post = Invoke-Api -Method "POST" -Path "/posts" -Token $authorToken -Body @{
@@ -141,12 +156,13 @@ try {
         content = @(
             @{
                 type = "text"
-                value = "hello from curl"
+                    value = "hello from curl"
             }
         )
+        tags = @("curl", "smoke")
         access = @{
-            type = "free"
-            price = 0
+            type = "paid"
+            price = 15
         }
     }
 
@@ -155,13 +171,35 @@ try {
     }
 
     $feed = Invoke-Api -Method "GET" -Path "/feed" -Token $readerToken
-    if (-not ($feed | Where-Object { $_.id -eq $post.postId })) {
+    $feedPost = $feed | Where-Object { $_.id -eq $post.postId } | Select-Object -First 1
+    if (-not $feedPost) {
         throw "Feed does not contain followed author post."
     }
+    if (-not $feedPost.is_locked) {
+        throw "Paid post should be locked in the feed."
+    }
 
-    $postDetail = Invoke-Api -Method "GET" -Path "/posts/$($post.postId)"
-    if (-not $postDetail.post.id) {
+    $discover = Invoke-Api -Method "GET" -Path "/posts?tag=curl" -Token $readerToken
+    if (-not ($discover | Where-Object { $_.id -eq $post.postId })) {
+        throw "Tag search did not return the created post."
+    }
+
+    $lockedDetail = Invoke-Api -Method "GET" -Path "/posts/$($post.postId)" -Token $readerToken
+    if (-not $lockedDetail.post.id) {
         throw "Post detail endpoint failed."
+    }
+    if (-not $lockedDetail.post.is_locked) {
+        throw "Paid post should be locked before purchase."
+    }
+
+    $purchase = Invoke-Api -Method "POST" -Path "/posts/$($post.postId)/purchase" -Token $readerToken
+    if ($purchase.walletBalance -ne 85) {
+        throw "Wallet balance after purchase is invalid."
+    }
+
+    $postDetail = Invoke-Api -Method "GET" -Path "/posts/$($post.postId)" -Token $readerToken
+    if ($postDetail.post.is_locked) {
+        throw "Post should be unlocked after purchase."
     }
 
     $comment = Invoke-Api -Method "POST" -Path "/comments" -Token $readerToken -Body @{
@@ -186,6 +224,11 @@ try {
     $reactions = Invoke-Api -Method "GET" -Path "/reactions/$($post.postId)"
     if (-not ($reactions | Where-Object { $_.type -eq "like" })) {
         throw "Reaction list does not contain created reaction."
+    }
+
+    $likers = Invoke-Api -Method "GET" -Path "/posts/$($post.postId)/reactions/users" -Token $authorToken
+    if (-not ($likers | Where-Object { $_.id -eq $readerMe.id })) {
+        throw "Author cannot see liked users."
     }
 
     $null = Invoke-Api -Method "DELETE" -Path "/comments/$($comment.commentId)" -Token $readerToken

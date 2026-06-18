@@ -19,3 +19,8 @@ export async function removeReaction(postId) {
     const res = await client.delete(`/reactions/${postId}`);
     return unwrapApiResponse(res);
 }
+
+export async function getReactionUsers(postId) {
+    const res = await client.get(`/posts/${postId}/reactions/users`);
+    return unwrapApiResponse(res);
+}

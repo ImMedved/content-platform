@@ -64,7 +64,23 @@ curl -s "$API_BASE_URL/users/me" \
 
 Save the author's id as `AUTHOR_ID`.
 
-## 4. Follow and follower lists
+You should also see `wallet_balance: 100` for both users.
+
+## 4. Update profile
+
+```bash
+curl -s -X PUT "$API_BASE_URL/users/me" \
+  -H "Authorization: Bearer $AUTHOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name":"Author Updated",
+    "bio":"Updated through API",
+    "status":"creator",
+    "avatar_url":"https://example.com/avatar.png"
+  }'
+```
+
+## 5. Follow and follower lists
 
 ```bash
 curl -s -X POST "$API_BASE_URL/follow/$AUTHOR_ID" \
@@ -89,7 +105,7 @@ curl -s "$API_BASE_URL/users/$AUTHOR_ID/followers"
 curl -s "$API_BASE_URL/users/$AUTHOR_ID/following"
 ```
 
-## 5. Create post
+## 6. Create paid tagged post
 
 ```bash
 curl -s -X POST "$API_BASE_URL/posts" \
@@ -99,20 +115,18 @@ curl -s -X POST "$API_BASE_URL/posts" \
     "title":"First post",
     "description":"Post from curl",
     "content":[{"type":"text","value":"Hello from curl"}],
-    "access":{"type":"free"}
+    "tags":["curl","smoke"],
+    "access":{"type":"paid","price":15}
   }'
 ```
 
 Save returned `postId` as `POST_ID`.
 
-## 6. Read posts and post detail
+## 7. Read feeds, search by tag, and purchase
 
 ```bash
-curl -s "$API_BASE_URL/posts"
-```
-
-```bash
-curl -s "$API_BASE_URL/posts/$POST_ID"
+curl -s "$API_BASE_URL/posts?tag=curl" \
+  -H "Authorization: Bearer $READER_TOKEN"
 ```
 
 ```bash
@@ -120,7 +134,26 @@ curl -s "$API_BASE_URL/feed" \
   -H "Authorization: Bearer $READER_TOKEN"
 ```
 
-## 7. Comments
+```bash
+curl -s "$API_BASE_URL/posts/$POST_ID" \
+  -H "Authorization: Bearer $READER_TOKEN"
+```
+
+Before purchase, the paid post should be visible but locked.
+
+```bash
+curl -s -X POST "$API_BASE_URL/posts/$POST_ID/purchase" \
+  -H "Authorization: Bearer $READER_TOKEN"
+```
+
+```bash
+curl -s "$API_BASE_URL/posts/$POST_ID" \
+  -H "Authorization: Bearer $READER_TOKEN"
+```
+
+After purchase, content should be unlocked and the buyer wallet should be reduced.
+
+## 8. Comments
 
 ```bash
 curl -s -X POST "$API_BASE_URL/comments" \
@@ -140,7 +173,7 @@ curl -s -X DELETE "$API_BASE_URL/comments/$COMMENT_ID" \
   -H "Authorization: Bearer $READER_TOKEN"
 ```
 
-## 8. Reactions
+## 9. Reactions and likers
 
 ```bash
 curl -s -X POST "$API_BASE_URL/reactions" \
@@ -154,17 +187,22 @@ curl -s "$API_BASE_URL/reactions/$POST_ID"
 ```
 
 ```bash
+curl -s "$API_BASE_URL/posts/$POST_ID/reactions/users" \
+  -H "Authorization: Bearer $AUTHOR_TOKEN"
+```
+
+```bash
 curl -s -X DELETE "$API_BASE_URL/reactions/$POST_ID" \
   -H "Authorization: Bearer $READER_TOKEN"
 ```
 
-## 9. User profile
+## 10. User profile
 
 ```bash
 curl -s "$API_BASE_URL/users/$AUTHOR_ID"
 ```
 
-## 10. Unfollow
+## 11. Unfollow
 
 ```bash
 curl -s -X DELETE "$API_BASE_URL/follow/$AUTHOR_ID" \

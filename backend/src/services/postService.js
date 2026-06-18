@@ -2,23 +2,91 @@
 Post service
 - create post
 - fetch post
-- invalidate feed cache
+- list posts
+- purchase access
 */
 
 const postRepo = require("../repositories/postRepository");
 const followRepo = require("../repositories/followRepository");
+const purchaseRepo = require("../repositories/purchaseRepository");
+const walletRepo = require("../repositories/walletRepository");
 const feedService = require("./feedService");
+const { saveDataUrl } = require("../utils/mediaStorage");
+
+function normalizeContentItems(content = []) {
+    return content
+        .map((item) => {
+            const type = String(item?.type || "").trim().toLowerCase();
+            const value = item?.value;
+
+            if (!type || !value) {
+                return null;
+            }
+
+            if (type === "image" && typeof value === "string") {
+                return {
+                    type,
+                    value: saveDataUrl(value, "post")
+                };
+            }
+
+            return { type, value };
+        })
+        .filter(Boolean);
+}
+
+function getPreviewUrl(content = []) {
+    const imageItem = content.find((item) => item.type === "image");
+    return imageItem ? imageItem.value : null;
+}
+
+async function hydratePosts(posts, viewerId) {
+    if (!Array.isArray(posts) || posts.length === 0) {
+        return [];
+    }
+
+    const postIds = posts.map((post) => Number(post.id));
+    const accessMap = await postRepo.getPostAccessMap(postIds);
+    const contentMap = await postRepo.getPostContentMap(postIds);
+    const tagMap = await postRepo.getPostTagMap(postIds);
+    const accessibleIds = new Set(await purchaseRepo.getAccessiblePostIds(viewerId, postIds));
+
+    return posts.map((post) => {
+        const access = accessMap.get(Number(post.id)) || {
+            access_type: "free",
+            price: 0
+        };
+        const content = contentMap.get(Number(post.id)) || [];
+        const canViewContent =
+            access.access_type !== "paid" ||
+            Number(post.author_id) === Number(viewerId) ||
+            accessibleIds.has(Number(post.id));
+
+        return {
+            ...post,
+            content: canViewContent ? content : [],
+            tags: tagMap.get(Number(post.id)) || [],
+            access_type: access.access_type,
+            price: Number(access.price || 0),
+            can_view_content: canViewContent,
+            is_locked: !canViewContent
+        };
+    });
+}
 
 async function createPost(userId, data) {
-    const { title, description, content, access } = data;
+    const { title, description, access, tags } = data;
+    const content = normalizeContentItems(data.content);
+    const previewUrl = getPreviewUrl(content);
 
-    const postId = await postRepo.createPost(userId, title, description);
+    const postId = await postRepo.createPost(userId, title, description, previewUrl);
 
-    if (content) {
+    if (content.length > 0) {
         await postRepo.addContent(postId, content);
     }
 
     await postRepo.setAccess(postId, access || { type: "free" });
+    await postRepo.syncTags(postId, tags || []);
 
     const followers = await followRepo.getFollowers(userId);
 
@@ -26,21 +94,89 @@ async function createPost(userId, data) {
         await feedService.invalidateFeed(followerId);
     }
 
+    await feedService.invalidateFeed(userId);
+
     return { postId };
 }
 
-async function getPost(id) {
-    return await postRepo.getPostById(id);
+async function getPost(id, viewerId = null) {
+    const data = await postRepo.getPostById(id);
+
+    if (!data.post) {
+        return { post: null, content: [], access: null, tags: [] };
+    }
+
+    const [hydratedPost] = await hydratePosts([data.post], viewerId);
+
+    return {
+        post: hydratedPost,
+        content: hydratedPost.content,
+        access: {
+            access_type: hydratedPost.access_type,
+            price: hydratedPost.price
+        },
+        tags: hydratedPost.tags
+    };
 }
 
-async function listPosts(filters = {}) {
-    const { limit, authorId } = filters;
+async function listPosts(filters = {}, viewerId = null) {
+    const { limit, authorId, tag } = filters;
+    const posts = await postRepo.listPosts(limit || 20, authorId || null, tag || null);
+    return hydratePosts(posts, viewerId);
+}
 
-    return await postRepo.listPosts(limit || 20, authorId || null);
+async function purchasePost(userId, postId) {
+    const details = await getPost(postId, userId);
+    const post = details.post;
+
+    if (!post) {
+        throw new Error("Post not found");
+    }
+
+    if (Number(post.author_id) === Number(userId)) {
+        throw new Error("You already own this post");
+    }
+
+    if (post.access_type !== "paid") {
+        throw new Error("Post does not require purchase");
+    }
+
+    const result = await purchaseRepo.purchasePost(userId, {
+        id: post.id,
+        author_id: post.author_id,
+        price: post.price
+    });
+
+    await feedService.invalidateFeed(userId);
+
+    const wallet = await walletRepo.getWallet(userId);
+
+    return {
+        postId: post.id,
+        alreadyOwned: result.alreadyOwned,
+        walletBalance: Number(wallet?.balance || result.balance || 0)
+    };
+}
+
+async function getReactionUsers(postId, viewerId) {
+    const owner = await postRepo.getPostOwner(postId);
+
+    if (!owner) {
+        throw new Error("Post not found");
+    }
+
+    if (Number(owner.author_id) !== Number(viewerId)) {
+        throw new Error("Only the author can view liked users");
+    }
+
+    return postRepo.getReactionUsers(postId);
 }
 
 module.exports = {
     createPost,
     getPost,
-    listPosts
+    listPosts,
+    purchasePost,
+    getReactionUsers,
+    hydratePosts
 };

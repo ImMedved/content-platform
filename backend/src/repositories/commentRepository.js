@@ -21,7 +21,8 @@ async function getComments(postId) {
         `SELECT
             c.*,
             u.username AS author_username,
-            u.display_name AS authorName
+            u.display_name AS authorName,
+            u.avatar_url AS author_avatar_url
         FROM comment c
         INNER JOIN users u ON u.id = c.author_id
         WHERE c.post_id = ?
