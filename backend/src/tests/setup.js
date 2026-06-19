@@ -16,6 +16,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+    await db.query("DELETE FROM direct_message");
     await db.query("DELETE FROM reaction");
     await db.query("DELETE FROM comment");
     await db.query("DELETE FROM follow");

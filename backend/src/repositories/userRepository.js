@@ -5,19 +5,36 @@ User repository
 
 const db = require("../db/db");
 
-async function createUser({ username, email, passwordHash }) {
-    const [result] = await db.query(
-        "INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)",
-        [username, email, passwordHash, username]
-    );
+const PUBLIC_USER_FIELDS = "id, username, display_name, bio, avatar_url, status, created_at, last_login_at";
+let hasLegacyEmailColumnCache = null;
+
+async function hasLegacyEmailColumn() {
+    if (hasLegacyEmailColumnCache !== null) {
+        return hasLegacyEmailColumnCache;
+    }
+
+    const [rows] = await db.query("SHOW COLUMNS FROM users LIKE 'email'");
+    hasLegacyEmailColumnCache = rows.length > 0;
+    return hasLegacyEmailColumnCache;
+}
+
+async function createUser({ username, emailHash, passwordHash }) {
+    const legacyEmailColumn = await hasLegacyEmailColumn();
+    const query = legacyEmailColumn
+        ? "INSERT INTO users (username, email_hash, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)"
+        : "INSERT INTO users (username, email_hash, password_hash, display_name) VALUES (?, ?, ?, ?)";
+    const values = legacyEmailColumn
+        ? [username, emailHash, emailHash, passwordHash, username]
+        : [username, emailHash, passwordHash, username];
+    const [result] = await db.query(query, values);
 
     return result.insertId;
 }
 
-async function findByEmail(email) {
+async function findByEmailHash(emailHash) {
     const [rows] = await db.query(
-        "SELECT * FROM users WHERE email = ?",
-        [email]
+        "SELECT * FROM users WHERE email_hash = ?",
+        [emailHash]
     );
 
     return rows[0];
@@ -25,7 +42,7 @@ async function findByEmail(email) {
 
 async function findById(id) {
     const [rows] = await db.query(
-        "SELECT id, username, email, display_name, bio, avatar_url, status, created_at, last_login_at FROM users WHERE id = ?",
+        `SELECT ${PUBLIC_USER_FIELDS} FROM users WHERE id = ?`,
         [id]
     );
 
@@ -39,7 +56,7 @@ async function findManyByIds(ids) {
 
     const placeholders = ids.map(() => "?").join(", ");
     const [rows] = await db.query(
-        `SELECT id, username, email, display_name, bio, avatar_url, status, created_at, last_login_at FROM users WHERE id IN (${placeholders})`,
+        `SELECT ${PUBLIC_USER_FIELDS} FROM users WHERE id IN (${placeholders})`,
         ids
     );
 
@@ -75,7 +92,7 @@ async function updateUser(userId, fields) {
 
 module.exports = {
     createUser,
-    findByEmail,
+    findByEmailHash,
     findById,
     findManyByIds,
     updateUser

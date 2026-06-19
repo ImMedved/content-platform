@@ -37,6 +37,7 @@ describe("Auth flow", () => {
             .set("Authorization", `Bearer ${token}`);
 
         expect(meRes.statusCode).toBe(200);
-        expect(meRes.body.data.email).toBe("flow_user@test.com");
+        expect(meRes.body.data.username).toBe("flow_user");
+        expect(meRes.body.data.email).toBeUndefined();
     });
 });

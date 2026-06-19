@@ -231,9 +231,53 @@ try {
         throw "Author cannot see liked users."
     }
 
+    $null = Invoke-Api -Method "POST" -Path "/follow/$($readerMe.id)" -Token $authorToken
+
+    $streamJob = Start-Job -ScriptBlock {
+        param($BaseUrl, $Token)
+        & curl.exe -sS -H "Authorization: Bearer $Token" "$BaseUrl/messages/stream?after=0"
+    } -ArgumentList $ApiBaseUrl, $readerToken
+
+    Start-Sleep -Milliseconds 300
+
+    $directMessage = Invoke-Api -Method "POST" -Path "/messages/$($readerMe.id)" -Token $authorToken -Body @{
+        body = "hello from curl chat"
+    }
+
+    if (-not $directMessage.id) {
+        throw "Direct message creation failed."
+    }
+
+    $streamRaw = Receive-Job -Job $streamJob -Wait
+    Remove-Job -Job $streamJob
+
+    $streamResult = $streamRaw | ConvertFrom-Json
+    if (-not ($streamResult.data.messages | Where-Object { $_.id -eq $directMessage.id })) {
+        throw "Message stream did not return the new direct message."
+    }
+
+    $readerChats = Invoke-Api -Method "GET" -Path "/messages/chats" -Token $readerToken
+    if (-not ($readerChats | Where-Object { $_.peer.id -eq $authorMe.id })) {
+        throw "Chat list does not contain the new conversation."
+    }
+
+    $readerConversation = Invoke-Api -Method "GET" -Path "/messages/$($authorMe.id)" -Token $readerToken
+    if (-not ($readerConversation | Where-Object { $_.id -eq $directMessage.id })) {
+        throw "Conversation endpoint did not return the sent message."
+    }
+
+    $replyMessage = Invoke-Api -Method "POST" -Path "/messages/$($authorMe.id)" -Token $readerToken -Body @{
+        body = "reply from curl chat"
+    }
+
+    if (-not $replyMessage.id) {
+        throw "Direct message reply failed."
+    }
+
     $null = Invoke-Api -Method "DELETE" -Path "/comments/$($comment.commentId)" -Token $readerToken
     $null = Invoke-Api -Method "DELETE" -Path "/reactions/$($post.postId)" -Token $readerToken
     $null = Invoke-Api -Method "DELETE" -Path "/follow/$($authorMe.id)" -Token $readerToken
+    $null = Invoke-Api -Method "DELETE" -Path "/follow/$($readerMe.id)" -Token $authorToken
 
     $profile = Invoke-Api -Method "GET" -Path "/users/$($authorMe.id)"
     if (-not ($profile.posts | Where-Object { $_.id -eq $post.postId })) {

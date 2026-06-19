@@ -34,8 +34,8 @@ module.exports = async function initDb() {
     await db.query("SET FOREIGN_KEY_CHECKS = 0");
 
     try {
-        await db.query("DROP TABLE IF EXISTS user_role");
-        await db.query("DROP TABLE IF EXISTS user");
+        await db.query("DROP TABLE IF EXISTS users_role");
+        await db.query("DROP TABLE IF EXISTS users");
 
         for (const query of queries) {
             await db.query(query);

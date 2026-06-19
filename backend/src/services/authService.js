@@ -17,16 +17,19 @@ const userRepo = require("../repositories/userRepository");
 const roleRepo = require("../repositories/roleRepository");
 const sessionRepo = require("../repositories/sessionRepository");
 const walletRepo = require("../repositories/walletRepository");
+const { getEmailHash, normalizeEmail } = require("../utils/emailSecurity");
 
 // register
 async function register(data) {
     const { username, email, password } = data;
+    const normalizedEmail = normalizeEmail(email);
+    const emailHash = getEmailHash(normalizedEmail);
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     const userId = await userRepo.createUser({
         username,
-        email,
+        emailHash,
         passwordHash
     });
 
@@ -41,8 +44,9 @@ async function register(data) {
 // login
 async function login(data) {
     const { email, password } = data;
+    const emailHash = getEmailHash(email);
 
-    const user = await userRepo.findByEmail(email);
+    const user = await userRepo.findByEmailHash(emailHash);
 
     if (!user) throw new Error("User not found");
 

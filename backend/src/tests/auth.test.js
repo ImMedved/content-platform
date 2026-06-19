@@ -6,6 +6,7 @@ Auth tests
 
 const request = require("supertest");
 const app = require("../app");
+const db = require("../db/db");
 const { apiPath, responseData } = require("./helpers/api");
 
 describe("Auth API", () => {
@@ -23,6 +24,14 @@ describe("Auth API", () => {
 
         expect(res.statusCode).toBe(200);
         expect(responseData(res).userId).toBeDefined();
+
+        const [rows] = await db.query(
+            "SELECT email_hash FROM users WHERE id = ?",
+            [responseData(res).userId]
+        );
+
+        expect(rows[0].email_hash).toBeDefined();
+        expect(rows[0].email_hash).not.toBe(email);
     });
 
     it("should login user", async () => {

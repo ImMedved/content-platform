@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS follow;
 DROP TABLE IF EXISTS post_access;
 DROP TABLE IF EXISTS post_content;
 DROP TABLE IF EXISTS post;
+DROP TABLE IF EXISTS direct_message;
 DROP TABLE IF EXISTS session;
 DROP TABLE IF EXISTS users_role;
 DROP TABLE IF EXISTS role;
@@ -19,7 +20,7 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email_hash VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(100) NOT NULL,
     bio TEXT NULL,
@@ -51,6 +52,20 @@ CREATE TABLE session (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_session_user_id (user_id),
     CONSTRAINT fk_session_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE direct_message (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sender_id BIGINT NOT NULL,
+    recipient_id BIGINT NOT NULL,
+    body TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME NULL,
+    INDEX idx_direct_message_sender_recipient (sender_id, recipient_id, id),
+    INDEX idx_direct_message_recipient_read (recipient_id, read_at, id),
+    CONSTRAINT chk_direct_message_not_self CHECK (sender_id <> recipient_id),
+    CONSTRAINT fk_direct_message_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_direct_message_recipient FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 INSERT INTO role (name) VALUES

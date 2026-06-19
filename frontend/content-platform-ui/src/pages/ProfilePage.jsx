@@ -7,25 +7,15 @@ import {
     getMyProfile,
     getUserFollowers,
     getUserFollowing,
-    getUserProfile,
-    updateMe
+    getUserProfile
 } from "../api/user";
 import PostCard from "../components/PostCard";
 import { useAuth } from "../context/AuthContext";
 import { resolveMediaUrl } from "../utils/media";
 
-function readFileAsDataUrl(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
 function ProfilePage() {
     const { id = "me" } = useParams();
-    const { user: currentUser, refreshUser } = useAuth();
+    const { user: currentUser } = useAuth();
     const [profile, setProfile] = useState(null);
     const [posts, setPosts] = useState([]);
     const [followers, setFollowers] = useState([]);
@@ -33,16 +23,8 @@ function ProfilePage() {
     const [myFollowingIds, setMyFollowingIds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [followLoading, setFollowLoading] = useState(false);
-    const [savingProfile, setSavingProfile] = useState(false);
     const [error, setError] = useState("");
     const [actionMessage, setActionMessage] = useState("");
-    const [editForm, setEditForm] = useState({
-        display_name: "",
-        bio: "",
-        status: "",
-        avatar_url: ""
-    });
-    const [avatarFile, setAvatarFile] = useState(null);
 
     useEffect(() => {
         loadProfile();
@@ -74,12 +56,6 @@ function ProfilePage() {
             setFollowers(Array.isArray(followersData) ? followersData : []);
             setFollowing(Array.isArray(followingData) ? followingData : []);
             setMyFollowingIds(Array.isArray(myFollowingData) ? myFollowingData.map((item) => item.id) : []);
-            setEditForm({
-                display_name: profileData.display_name || "",
-                bio: profileData.bio || "",
-                status: profileData.status || "",
-                avatar_url: profileData.avatar_url || ""
-            });
         } catch (err) {
             setError(getApiErrorMessage(err));
             setProfile(null);
@@ -98,6 +74,7 @@ function ProfilePage() {
 
         setFollowLoading(true);
         setActionMessage("");
+        setError("");
 
         try {
             if (myFollowingIds.includes(profile.id)) {
@@ -120,30 +97,6 @@ function ProfilePage() {
         }
     }
 
-    async function handleProfileSave(event) {
-        event.preventDefault();
-        setSavingProfile(true);
-        setError("");
-        setActionMessage("");
-
-        try {
-            const payload = { ...editForm };
-
-            if (avatarFile) {
-                payload.avatar_file = await readFileAsDataUrl(avatarFile);
-            }
-
-            const updated = await updateMe(payload);
-            await refreshUser();
-            setProfile(updated);
-            setActionMessage("Profile updated.");
-        } catch (err) {
-            setError(getApiErrorMessage(err));
-        } finally {
-            setSavingProfile(false);
-        }
-    }
-
     const isOwnProfile = profile?.id === currentUser?.id || id === "me";
     const isFollowingProfile = profile ? myFollowingIds.includes(profile.id) : false;
 
@@ -158,9 +111,14 @@ function ProfilePage() {
                 </div>
 
                 {isOwnProfile && (
-                    <Link className="btn btn--primary" to="/create">
-                        Create post
-                    </Link>
+                    <div className="page-actions">
+                        <Link className="btn btn--secondary" to="/settings/profile">
+                            Edit profile
+                        </Link>
+                        <Link className="btn btn--primary" to="/create">
+                            Create post
+                        </Link>
+                    </div>
                 )}
             </div>
 
@@ -173,7 +131,7 @@ function ProfilePage() {
                     <div className="profile-header">
                         <img
                             className="profile-avatar profile-avatar--image"
-                            src={resolveMediaUrl(editForm.avatar_url || profile.avatar_url)}
+                            src={resolveMediaUrl(profile.avatar_url)}
                             alt=""
                         />
 
@@ -188,7 +146,6 @@ function ProfilePage() {
                                 <span>Status: {profile.status || "active"}</span>
                                 <span>Followers: {followers.length}</span>
                                 <span>Following: {following.length}</span>
-                                <span>Email: {profile.email}</span>
                             </div>
 
                             {!isOwnProfile && (
@@ -200,87 +157,15 @@ function ProfilePage() {
                                     >
                                         {followLoading ? "Saving..." : isFollowingProfile ? "Unfollow" : "Follow"}
                                     </button>
+                                    {isFollowingProfile && (
+                                        <Link className="btn btn--primary" to={`/messages/${profile.id}`}>
+                                            Message
+                                        </Link>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    {isOwnProfile && (
-                        <div className="card">
-                            <div className="card__body">
-                                <form className="form-grid" onSubmit={handleProfileSave}>
-                                    <div className="profile-panel__header">
-                                        <h3 className="page-title page-title--section">Edit profile</h3>
-                                    </div>
-
-                                    <label className="field">
-                                        <span className="field__label">Display name</span>
-                                        <input
-                                            className="field__input"
-                                            value={editForm.display_name}
-                                            onChange={(event) => setEditForm((current) => ({
-                                                ...current,
-                                                display_name: event.target.value
-                                            }))}
-                                        />
-                                    </label>
-
-                                    <label className="field">
-                                        <span className="field__label">Status</span>
-                                        <input
-                                            className="field__input"
-                                            value={editForm.status}
-                                            onChange={(event) => setEditForm((current) => ({
-                                                ...current,
-                                                status: event.target.value
-                                            }))}
-                                        />
-                                    </label>
-
-                                    <label className="field">
-                                        <span className="field__label">Bio</span>
-                                        <textarea
-                                            className="field__textarea"
-                                            value={editForm.bio}
-                                            onChange={(event) => setEditForm((current) => ({
-                                                ...current,
-                                                bio: event.target.value
-                                            }))}
-                                        />
-                                    </label>
-
-                                    <label className="field">
-                                        <span className="field__label">Avatar file</span>
-                                        <input
-                                            className="field__input"
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(event) => setAvatarFile(event.target.files?.[0] || null)}
-                                        />
-                                    </label>
-
-                                    <label className="field">
-                                        <span className="field__label">Avatar URL fallback</span>
-                                        <input
-                                            className="field__input"
-                                            value={editForm.avatar_url}
-                                            onChange={(event) => setEditForm((current) => ({
-                                                ...current,
-                                                avatar_url: event.target.value
-                                            }))}
-                                            disabled={Boolean(avatarFile)}
-                                        />
-                                    </label>
-
-                                    <div className="form-actions">
-                                        <button className="btn btn--primary" type="submit" disabled={savingProfile}>
-                                            {savingProfile ? "Saving..." : "Save profile"}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
 
                     <div className="profile-lists">
                         <section className="card">

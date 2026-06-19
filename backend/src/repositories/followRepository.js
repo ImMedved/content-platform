@@ -39,9 +39,19 @@ async function getFollowers(userId) {
     return rows.map((r) => r.follower_id);
 }
 
+async function isFollowing(followerId, followingId) {
+    const [rows] = await db.query(
+        "SELECT 1 FROM follow WHERE follower_id = ? AND following_id = ? LIMIT 1",
+        [followerId, followingId]
+    );
+
+    return rows.length > 0;
+}
+
 module.exports = {
     follow,
     unfollow,
     getFollowing,
-    getFollowers
+    getFollowers,
+    isFollowing
 };

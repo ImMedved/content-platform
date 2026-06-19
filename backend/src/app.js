@@ -17,6 +17,7 @@ const followRoutes = require("./routes/followRoutes");
 const feedRoutes = require("./routes/feedRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const reactionRoutes = require("./routes/reactionRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const API_PREFIX = "/api/v1";
 
@@ -28,6 +29,7 @@ app.use(`${API_PREFIX}/follow`, followRoutes);
 app.use(`${API_PREFIX}/feed`, feedRoutes);
 app.use(`${API_PREFIX}/comments`, commentRoutes);
 app.use(`${API_PREFIX}/reactions`, reactionRoutes);
+app.use(`${API_PREFIX}/messages`, messageRoutes);
 
 // test api
 app.get("/", (req, res) => {
