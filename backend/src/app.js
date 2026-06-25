@@ -4,6 +4,7 @@ const path = require("path");
 const db = require("./db/db");
 
 const app = express();
+const frontendDistPath = path.join(__dirname, "../../frontend/content-platform-ui/dist");
 
 // middleware
 app.use(express.json({ limit: "10mb" }));
@@ -31,20 +32,25 @@ app.use(`${API_PREFIX}/comments`, commentRoutes);
 app.use(`${API_PREFIX}/reactions`, reactionRoutes);
 app.use(`${API_PREFIX}/messages`, messageRoutes);
 
-// test api
-app.get("/", (req, res) => {
-    res.json({ status: "ok" });
-});
-
-// db check
-app.get("/db-test", async (req, res) => {
+app.get("/health", async (req, res) => {
     try {
-        // simple query to test db connection
         const [rows] = await db.query("SELECT 1 + 1 AS result");
-        res.json(rows);
+        res.json({ status: "ok", db: rows[0]?.result === 2 ? "ok" : "unknown" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+if (process.env.NODE_ENV !== "test") {
+    app.use(express.static(frontendDistPath));
+
+    app.get(/^(?!\/api\/v1|\/uploads|\/health).*/, (req, res, next) => {
+        res.sendFile(path.join(frontendDistPath, "index.html"), (err) => {
+            if (err) {
+                next();
+            }
+        });
+    });
+}
 
 module.exports = app;
