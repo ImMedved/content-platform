@@ -18,6 +18,12 @@ redisClient.on("error", (err) => {
     console.error("Redis error:", err.message);
 });
 
+function attachRedisLogging(client, label = "Redis") {
+    client.on("error", (err) => {
+        console.error(`${label} error:`, err.message);
+    });
+}
+
 async function connectRedisIfAvailable() {
     if (redisClient.isOpen) {
         return true;
@@ -32,5 +38,35 @@ async function connectRedisIfAvailable() {
     }
 }
 
+async function createRedisSubscriberIfAvailable() {
+    const ready = await connectRedisIfAvailable();
+
+    if (!ready) {
+        return null;
+    }
+
+    const subscriber = redisClient.duplicate({
+        socket: {
+            connectTimeout: 1000,
+            reconnectStrategy: false
+        }
+    });
+
+    attachRedisLogging(subscriber, "Redis subscriber");
+
+    try {
+        await subscriber.connect();
+        return subscriber;
+    } catch (err) {
+        console.warn("Redis subscriber unavailable, continuing without pub/sub.");
+        try {
+            await subscriber.quit();
+        } catch (quitError) {
+        }
+        return null;
+    }
+}
+
 module.exports = redisClient;
 module.exports.connectRedisIfAvailable = connectRedisIfAvailable;
+module.exports.createRedisSubscriberIfAvailable = createRedisSubscriberIfAvailable;

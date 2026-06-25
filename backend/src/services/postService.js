@@ -11,6 +11,7 @@ const followRepo = require("../repositories/followRepository");
 const purchaseRepo = require("../repositories/purchaseRepository");
 const walletRepo = require("../repositories/walletRepository");
 const feedService = require("./feedService");
+const tagCacheService = require("./tagCacheService");
 const { saveDataUrl } = require("../utils/mediaStorage");
 
 function normalizeContentItems(content = []) {
@@ -87,6 +88,7 @@ async function createPost(userId, data) {
 
     await postRepo.setAccess(postId, access || { type: "free" });
     await postRepo.syncTags(postId, tags || []);
+    await tagCacheService.addTags(tags || []);
 
     const followers = await followRepo.getFollowers(userId);
 
@@ -134,6 +136,12 @@ async function listPosts(filters = {}, viewerId = null) {
 }
 
 async function listTags(query, limit = 8) {
+    const cachedSuggestions = await tagCacheService.getSuggestions(query, limit);
+
+    if (Array.isArray(cachedSuggestions)) {
+        return cachedSuggestions;
+    }
+
     return postRepo.listTags(query, limit);
 }
 

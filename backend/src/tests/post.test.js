@@ -4,6 +4,7 @@ Post tests
 
 const request = require("supertest");
 const app = require("../app");
+const db = require("../db/db");
 const { apiPath, responseData, responseToken } = require("./helpers/api");
 
 let token;
@@ -120,6 +121,10 @@ describe("Post API", () => {
             });
 
         const paidPostId = responseData(paidPostRes).postId;
+        const authorRes = await request(app)
+            .get(apiPath("/users/me"))
+            .set("Authorization", `Bearer ${token}`);
+        const authorId = responseData(authorRes).id;
 
         const lockedRes = await request(app)
             .get(apiPath(`/posts/${paidPostId}`))
@@ -135,6 +140,14 @@ describe("Post API", () => {
 
         expect(purchaseRes.statusCode).toBe(200);
         expect(responseData(purchaseRes).walletBalance).toBe(85);
+        expect(responseData(purchaseRes).commissionAmount).toBe(1.5);
+        expect(responseData(purchaseRes).sellerIncome).toBe(13.5);
+
+        const [sellerWalletRows] = await db.query(
+            "SELECT balance FROM wallet WHERE user_id = ?",
+            [authorId]
+        );
+        expect(Number(sellerWalletRows[0].balance)).toBe(113.5);
 
         const unlockedRes = await request(app)
             .get(apiPath(`/posts/${paidPostId}`))

@@ -18,7 +18,8 @@ function PostCard({
     showBackButton = false,
     onBack = null,
     onPurchased = null,
-    onTagClick = null
+    onTagClick = null,
+    compact = false
 }) {
     const { user, refreshUser } = useAuth();
     const location = useLocation();
@@ -218,7 +219,7 @@ function PostCard({
     }
 
     return (
-        <article className="card post-card">
+        <article className={`card post-card${compact ? " post-card--compact" : ""}`}>
             {showBackButton && onBack && (
                 <div className="post-card__toolbar">
                     <button className="btn btn--secondary" onClick={onBack}>
@@ -277,7 +278,7 @@ function PostCard({
             </div>
 
             <div className="post-card__content">
-                {post.description && <p>{post.description}</p>}
+                {post.description && <p className={compact ? "post-card__description-preview" : ""}>{post.description}</p>}
 
                 {canViewContent ? (
                     <div className="post-card__content-items">
@@ -300,7 +301,7 @@ function PostCard({
                             onClick={handleLike}
                             disabled={reactionLoading || !post?.id}
                         >
-                            {reactionLoading ? "Saving..." : "Like"}
+                            Like
                         </button>
 
                         <button
@@ -308,7 +309,7 @@ function PostCard({
                             onClick={handleRemoveReaction}
                             disabled={reactionLoading || !post?.id || !hasReacted}
                         >
-                            {reactionLoading ? "Saving..." : "Remove reaction"}
+                            Remove reaction
                         </button>
                     </>
                 ) : (
@@ -371,7 +372,13 @@ function PostCard({
                 </div>
             )}
 
-            {canViewContent && (
+            {!canViewContent && (
+                <div className="post-card__message muted-box">
+                    Comments are unavailable until you purchase this post.
+                </div>
+            )}
+
+            {canViewContent && !compact && (
                 <div className="post-card__comments">
                     <h3 className="comments-title">Comments</h3>
 

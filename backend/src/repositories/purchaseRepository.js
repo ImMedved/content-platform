@@ -45,7 +45,8 @@ async function purchasePost(userId, post) {
             throw new Error("Insufficient funds");
         }
 
-        const commissionRate = 5;
+        const commissionRate = 10;
+        const commissionAmount = Number((price * (commissionRate / 100)).toFixed(2));
         const sellerIncome = Number((price * (1 - commissionRate / 100)).toFixed(2));
 
         await connection.query(
@@ -79,7 +80,9 @@ async function purchasePost(userId, post) {
 
         return {
             alreadyOwned: false,
-            balance: Number(updatedWallet.balance)
+            balance: Number(updatedWallet.balance),
+            commissionAmount,
+            sellerIncome
         };
     } catch (err) {
         await connection.rollback();

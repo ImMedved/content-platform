@@ -12,10 +12,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+const HEADER_TRANSITION_MS = 220;
+
 function Layout({ children }) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const lastScrollY = useRef(0);
+    const animationLock = useRef(false);
+    const animationTimeout = useRef(null);
     const [collapsed, setCollapsed] = useState(false);
 
     function handleLogout() {
@@ -24,14 +28,32 @@ function Layout({ children }) {
     }
 
     useEffect(() => {
+        const lockHeader = () => {
+            animationLock.current = true;
+
+            if (animationTimeout.current) {
+                clearTimeout(animationTimeout.current);
+            }
+
+            animationTimeout.current = setTimeout(() => {
+                animationLock.current = false;
+            }, HEADER_TRANSITION_MS);
+        };
+
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            if (currentScrollY <= 0) {
-                setCollapsed(false);
-            } else if (currentScrollY > lastScrollY.current) {
-                setCollapsed(true);
-            } else if (currentScrollY < lastScrollY.current) {
-                setCollapsed(false);
+
+            if (!animationLock.current) {
+                if (currentScrollY <= 0 && collapsed) {
+                    setCollapsed(false);
+                    lockHeader();
+                } else if (currentScrollY > lastScrollY.current && !collapsed) {
+                    setCollapsed(true);
+                    lockHeader();
+                } else if (currentScrollY < lastScrollY.current && collapsed) {
+                    setCollapsed(false);
+                    lockHeader();
+                }
             }
 
             lastScrollY.current = currentScrollY;
@@ -42,16 +64,20 @@ function Layout({ children }) {
 
         return () => {
             window.removeEventListener("scroll", handleScroll);
+
+            if (animationTimeout.current) {
+                clearTimeout(animationTimeout.current);
+            }
         };
-    }, []);
+    }, [collapsed]);
 
     return (
         <div className="app-shell">
             <header className={`site-header ${collapsed ? "site-header--collapsed" : ""}`}>
                 <div className="site-header__inner">
                     <Link className="brand" to="/">
-                        <div className="brand__logo">S</div>
-                        <div className="brand__name">Smart Content Platform</div>
+                        <div className="brand__logo">С</div>
+                        <div className="brand__name">Content Hub</div>
                     </Link>
 
                     <nav className="navbar">
@@ -116,7 +142,7 @@ function Layout({ children }) {
 
             <footer className="site-footer">
                 <div className="site-footer__inner">
-                    Smart Content Platform - seminar implementation build
+                    "Systems III - Information systems" seminar implementation build
                 </div>
             </footer>
         </div>

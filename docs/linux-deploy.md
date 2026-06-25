@@ -21,6 +21,13 @@ chmod +x scripts/deploy-linux.sh
 
 ## Main commands
 
+Install local Redis on Debian/Ubuntu:
+
+```bash
+chmod +x scripts/install-redis-linux.sh
+./scripts/install-redis-linux.sh
+```
+
 Full deploy:
 
 ```bash
@@ -62,5 +69,5 @@ Stop:
 ## Notes
 
 - Docker files were left untouched and can still be used locally.
-- Redis is optional. If it is unavailable, the backend continues without cache.
+- Redis is used for feed cache, tag autocomplete catalog, and realtime message notifications. If it is unavailable, the backend falls back to DB lookups and in-process message waiting.
 - The backend serves `frontend/content-platform-ui/dist`, so no separate Vite or nginx process is required for a basic deployment.

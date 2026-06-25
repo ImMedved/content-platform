@@ -84,6 +84,8 @@ function FeedPage() {
     const [excludeInput, setExcludeInput] = useState("");
     const [includeSuggestions, setIncludeSuggestions] = useState([]);
     const [excludeSuggestions, setExcludeSuggestions] = useState([]);
+    const followedPostIds = new Set(followedPosts.map((post) => Number(post.id)));
+    const visibleDiscoverPosts = discoverPosts.filter((post) => !followedPostIds.has(Number(post.id)));
 
     useEffect(() => {
         loadFeed();
@@ -310,6 +312,7 @@ function FeedPage() {
                         post={post}
                         onPurchased={loadFeed}
                         onTagClick={handlePostTagClick}
+                        compact
                     />
                 ))}
             </div>
@@ -336,17 +339,18 @@ function FeedPage() {
 
                 {discoverLoading && <div className="muted-box">Loading latest posts...</div>}
                 {discoverError && <div className="muted-box">{discoverError}</div>}
-                {!discoverLoading && !discoverError && discoverPosts.length === 0 && (
+                {!discoverLoading && !discoverError && visibleDiscoverPosts.length === 0 && (
                     <div className="muted-box">No posts match the current tag filters.</div>
                 )}
 
                 <div className="post-list">
-                    {discoverPosts.map((post) => (
+                    {visibleDiscoverPosts.map((post) => (
                         <PostCard
                             key={`discover-${post.id}`}
                             post={post}
                             onPurchased={() => loadDiscover(appliedIncludeTags, appliedExcludeTags)}
                             onTagClick={handlePostTagClick}
+                            compact
                         />
                     ))}
                 </div>

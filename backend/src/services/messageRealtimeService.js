@@ -1,5 +1,16 @@
+const redisClient = require("../config/redis");
+const { createRedisSubscriberIfAvailable } = require("../config/redis");
+
 const listenersByUser = new Map();
 const versionByUser = new Map();
+
+function getVersionKey(userId) {
+    return `messages:user:${userId}:version`;
+}
+
+function getChannelName(userId) {
+    return `messages:user:${userId}:events`;
+}
 
 function addListener(userId, listener) {
     const key = String(userId);
@@ -22,8 +33,20 @@ function addListener(userId, listener) {
     };
 }
 
-function notifyUsers(userIds) {
+async function notifyUsers(userIds) {
     const uniqueUserIds = [...new Set(userIds.map((item) => String(item)))];
+
+    if (redisClient.isOpen) {
+        const pipeline = redisClient.multi();
+
+        for (const userId of uniqueUserIds) {
+            pipeline.incr(getVersionKey(userId));
+            pipeline.publish(getChannelName(userId), "message");
+        }
+
+        await pipeline.exec();
+        return;
+    }
 
     for (const userId of uniqueUserIds) {
         versionByUser.set(userId, (versionByUser.get(userId) || 0) + 1);
@@ -39,13 +62,18 @@ function notifyUsers(userIds) {
     }
 }
 
-function getUserVersion(userId) {
+async function getUserVersion(userId) {
+    if (redisClient.isOpen) {
+        const version = await redisClient.get(getVersionKey(userId));
+        return Number(version || 0);
+    }
+
     return versionByUser.get(String(userId)) || 0;
 }
 
-function waitForUserUpdate(userId, sinceVersion, timeoutMs = 25000) {
-    if (getUserVersion(userId) > sinceVersion) {
-        return Promise.resolve();
+async function waitForLocalUserUpdate(userId, sinceVersion, timeoutMs) {
+    if ((versionByUser.get(String(userId)) || 0) > sinceVersion) {
+        return;
     }
 
     return new Promise((resolve) => {
@@ -66,6 +94,65 @@ function waitForUserUpdate(userId, sinceVersion, timeoutMs = 25000) {
 
         unsubscribe = addListener(userId, finish);
         timeoutId = setTimeout(finish, timeoutMs);
+    });
+}
+
+async function waitForUserUpdate(userId, sinceVersion, timeoutMs = 25000) {
+    const currentVersion = await getUserVersion(userId);
+
+    if (currentVersion > sinceVersion) {
+        return;
+    }
+
+    if (!redisClient.isOpen) {
+        await waitForLocalUserUpdate(userId, sinceVersion, timeoutMs);
+        return;
+    }
+
+    const subscriber = await createRedisSubscriberIfAvailable();
+
+    if (!subscriber) {
+        await waitForLocalUserUpdate(userId, sinceVersion, timeoutMs);
+        return;
+    }
+
+    await new Promise((resolve) => {
+        let completed = false;
+        let timeoutId = null;
+
+        const finish = async () => {
+            if (completed) {
+                return;
+            }
+
+            completed = true;
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            try {
+                await subscriber.unsubscribe(getChannelName(userId));
+            } catch (err) {
+            }
+
+            try {
+                await subscriber.quit();
+            } catch (err) {
+            }
+
+            resolve();
+        };
+
+        timeoutId = setTimeout(() => {
+            finish();
+        }, timeoutMs);
+
+        subscriber.subscribe(getChannelName(userId), async () => {
+            await finish();
+        }).catch(async () => {
+            await finish();
+        });
     });
 }
 

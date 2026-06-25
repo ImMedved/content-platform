@@ -51,11 +51,14 @@ get_app_port() {
 }
 
 install_dependencies() {
+    log "Cleaning previous dependency directories"
+    rm -rf "$BACKEND_DIR/node_modules" "$FRONTEND_DIR/node_modules"
+
     log "Installing backend dependencies"
-    (cd "$BACKEND_DIR" && npm ci)
+    (cd "$BACKEND_DIR" && npm ci --no-audit --no-fund)
 
     log "Installing frontend dependencies"
-    (cd "$FRONTEND_DIR" && npm ci)
+    (cd "$FRONTEND_DIR" && npm ci --no-audit --no-fund)
 }
 
 build_frontend() {
@@ -156,9 +159,9 @@ deploy_all() {
     require_command curl
     ensure_dirs
     ensure_env_file
+    stop_backend || true
     install_dependencies
     build_frontend
-    stop_backend || true
     start_backend
 }
 

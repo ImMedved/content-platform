@@ -60,7 +60,7 @@ async function sendMessage(userId, peerIdInput, body) {
     await assertCanMessage(userId, peerId);
 
     const message = await messageRepo.createMessage(userId, peerId, trimmedBody);
-    realtimeService.notifyUsers([userId, peerId]);
+    await realtimeService.notifyUsers([userId, peerId]);
 
     return message;
 }
@@ -71,7 +71,7 @@ async function getMessagesSince(userId, afterIdInput) {
 }
 
 async function waitForUpdates(userId, afterIdInput) {
-    const version = realtimeService.getUserVersion(userId);
+    const version = await realtimeService.getUserVersion(userId);
     let messages = await getMessagesSince(userId, afterIdInput);
 
     if (messages.length > 0) {

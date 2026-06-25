@@ -247,6 +247,14 @@ async function listTags(query = "", limit = 8) {
     return rows.map((row) => row.name);
 }
 
+async function listAllTags() {
+    const [rows] = await db.query(
+        "SELECT name FROM tag ORDER BY name ASC"
+    );
+
+    return rows.map((row) => row.name);
+}
+
 async function getPostOwner(postId) {
     const [[row]] = await db.query(
         "SELECT id, author_id, title FROM post WHERE id = ?",
@@ -286,6 +294,7 @@ module.exports = {
     getPostTagMap,
     listPosts,
     listTags,
+    listAllTags,
     getPostOwner,
     getReactionUsers
 };
