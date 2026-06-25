@@ -692,6 +692,9 @@ select:focus-visible {
 .profile-name {
     margin: 0 0 8px;
     font-size: 1.9rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .profile-username {
@@ -743,6 +746,10 @@ select:focus-visible {
 .profile-editor-preview__body {
     display: grid;
     gap: 16px;
+}
+
+.profile-editor-preview__body > div {
+    min-width: 0;
 }
 
 .post-page {
@@ -940,6 +947,130 @@ select:focus-visible {
     border-top: 1px solid rgba(168, 85, 247, 0.14);
 }
 
+.tag-filter-summary {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tag-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    color: #f2e8ff;
+}
+
+.tag-filter-pill--muted {
+    background: rgba(255, 107, 122, 0.1);
+    border-color: rgba(255, 107, 122, 0.18);
+}
+
+.feed-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(5, 5, 9, 0.46);
+}
+
+.feed-modal {
+    width: min(100%, 760px);
+    background: rgba(16, 16, 26, 0.9);
+    border-color: rgba(168, 85, 247, 0.24);
+    backdrop-filter: blur(12px);
+}
+
+.feed-modal__body {
+    display: grid;
+    gap: 16px;
+}
+
+.feed-modal__header .page-subtitle {
+    margin-bottom: 0;
+}
+
+.tag-picker {
+    position: relative;
+}
+
+.tag-picker__control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 52px;
+    width: 100%;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 6px;
+    background: #0d0d15;
+    color: var(--text);
+    padding: 10px 12px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.tag-picker__control:focus-within {
+    border-color: var(--accent);
+    box-shadow:
+        0 0 0 3px rgba(168, 85, 247, 0.16),
+        inset 0 0 0 1px rgba(168, 85, 247, 0.12);
+}
+
+.tag-picker__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(168, 85, 247, 0.24);
+    background: rgba(168, 85, 247, 0.12);
+    color: #f4ecff;
+}
+
+.tag-picker__chip-remove {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.tag-picker__input {
+    flex: 1 1 180px;
+    min-width: 120px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    padding: 6px 2px;
+}
+
+.tag-picker__suggestions {
+    margin-top: 8px;
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(168, 85, 247, 0.18);
+    background: rgba(10, 10, 16, 0.96);
+}
+
+.tag-picker__suggestion {
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: rgba(168, 85, 247, 0.06);
+    color: var(--text);
+}
+
+.tag-picker__suggestion:hover {
+    border-color: rgba(168, 85, 247, 0.2);
+    background: rgba(168, 85, 247, 0.12);
+}
+
 @media (max-width: 980px) {
     .feed-layout {
         grid-template-columns: 1fr;
@@ -963,6 +1094,10 @@ select:focus-visible {
 
     .profile-editor-layout {
         grid-template-columns: 1fr;
+    }
+
+    .feed-modal {
+        width: min(100%, 100%);
     }
 }
 

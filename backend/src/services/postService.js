@@ -120,9 +120,21 @@ async function getPost(id, viewerId = null) {
 }
 
 async function listPosts(filters = {}, viewerId = null) {
-    const { limit, authorId, tag } = filters;
-    const posts = await postRepo.listPosts(limit || 20, authorId || null, tag || null);
+    const { limit, authorId, tag, includeTags, excludeTags } = filters;
+    const normalizedIncludeTags = Array.isArray(includeTags) ? includeTags : [];
+    const normalizedExcludeTags = Array.isArray(excludeTags) ? excludeTags : [];
+    const posts = await postRepo.listPosts(
+        limit || 20,
+        authorId || null,
+        tag || null,
+        normalizedIncludeTags,
+        normalizedExcludeTags
+    );
     return hydratePosts(posts, viewerId);
+}
+
+async function listTags(query, limit = 8) {
+    return postRepo.listTags(query, limit);
 }
 
 async function purchasePost(userId, postId) {
@@ -176,6 +188,7 @@ module.exports = {
     createPost,
     getPost,
     listPosts,
+    listTags,
     purchasePost,
     getReactionUsers,
     hydratePosts

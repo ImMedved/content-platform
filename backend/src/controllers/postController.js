@@ -5,6 +5,20 @@ Post controller
 const postService = require("../services/postService");
 const { ok, fail } = require("../utils/apiResponse");
 
+function parseTagList(value) {
+    if (Array.isArray(value)) {
+        return value
+            .flatMap((item) => String(item || "").split(","))
+            .map((item) => item.trim().toLowerCase())
+            .filter(Boolean);
+    }
+
+    return String(value || "")
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+}
+
 async function createPost(req, res) {
     try {
         const result = await postService.createPost(req.user.userId, req.body);
@@ -29,10 +43,21 @@ async function listPosts(req, res) {
             {
                 limit: req.query.limit,
                 authorId: req.query.authorId,
-                tag: req.query.tag
+                tag: req.query.tag,
+                includeTags: parseTagList(req.query.includeTags),
+                excludeTags: parseTagList(req.query.excludeTags)
             },
             req.user?.userId || null
         );
+        ok(res, data);
+    } catch (err) {
+        fail(res, 500, err.message);
+    }
+}
+
+async function listTags(req, res) {
+    try {
+        const data = await postService.listTags(req.query.query || "", req.query.limit);
         ok(res, data);
     } catch (err) {
         fail(res, 500, err.message);
@@ -61,6 +86,7 @@ module.exports = {
     createPost,
     getPost,
     listPosts,
+    listTags,
     purchasePost,
     getReactionUsers
 };

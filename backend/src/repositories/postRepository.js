@@ -161,7 +161,7 @@ async function getPostTagMap(postIds) {
     return map;
 }
 
-async function listPosts(limit = 20, authorId = null, tag = null) {
+async function listPosts(limit = 20, authorId = null, tag = null, includeTags = [], excludeTags = []) {
     let query = `
         SELECT
             p.*,
@@ -175,12 +175,33 @@ async function listPosts(limit = 20, authorId = null, tag = null) {
     const conditions = [];
 
     if (tag) {
-        query += `
-            INNER JOIN post_tag pt ON pt.post_id = p.id
+        conditions.push(`EXISTS (
+            SELECT 1
+            FROM post_tag pt
             INNER JOIN tag t ON t.id = pt.tag_id
-        `;
-        conditions.push("t.name = ?");
+            WHERE pt.post_id = p.id AND t.name = ?
+        )`);
         params.push(String(tag).trim().toLowerCase());
+    }
+
+    for (const includeTag of includeTags) {
+        conditions.push(`EXISTS (
+            SELECT 1
+            FROM post_tag pt
+            INNER JOIN tag t ON t.id = pt.tag_id
+            WHERE pt.post_id = p.id AND t.name = ?
+        )`);
+        params.push(String(includeTag).trim().toLowerCase());
+    }
+
+    for (const excludeTag of excludeTags) {
+        conditions.push(`NOT EXISTS (
+            SELECT 1
+            FROM post_tag pt
+            INNER JOIN tag t ON t.id = pt.tag_id
+            WHERE pt.post_id = p.id AND t.name = ?
+        )`);
+        params.push(String(excludeTag).trim().toLowerCase());
     }
 
     if (authorId) {
@@ -198,6 +219,32 @@ async function listPosts(limit = 20, authorId = null, tag = null) {
     const [rows] = await db.query(query, params);
 
     return rows;
+}
+
+async function listTags(query = "", limit = 8) {
+    const normalizedQuery = String(query || "").trim().toLowerCase();
+    const safeLimit = Math.max(1, Math.min(Number(limit) || 8, 20));
+
+    if (!normalizedQuery) {
+        const [rows] = await db.query(
+            "SELECT name FROM tag ORDER BY name ASC LIMIT ?",
+            [safeLimit]
+        );
+        return rows.map((row) => row.name);
+    }
+
+    const likeValue = `%${normalizedQuery}%`;
+    const prefixValue = `${normalizedQuery}%`;
+    const [rows] = await db.query(
+        `SELECT name
+         FROM tag
+         WHERE name LIKE ?
+         ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name ASC
+         LIMIT ?`,
+        [likeValue, prefixValue, safeLimit]
+    );
+
+    return rows.map((row) => row.name);
 }
 
 async function getPostOwner(postId) {
@@ -238,6 +285,7 @@ module.exports = {
     getPostContentMap,
     getPostTagMap,
     listPosts,
+    listTags,
     getPostOwner,
     getReactionUsers
 };

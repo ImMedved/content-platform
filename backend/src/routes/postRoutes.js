@@ -11,6 +11,7 @@ router.post("/:id/purchase", authMiddleware, postController.purchasePost);
 router.get("/:id/reactions/users", authMiddleware, postController.getReactionUsers);
 
 // public
+router.get("/tags", optionalAuthMiddleware, postController.listTags);
 router.get("/", optionalAuthMiddleware, postController.listPosts);
 router.get("/:id", optionalAuthMiddleware, postController.getPost);
 

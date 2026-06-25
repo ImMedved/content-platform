@@ -15,6 +15,16 @@ export async function getPosts(params = {}) {
     return unwrapApiResponse(res);
 }
 
+export async function getTagSuggestions(query, limit = 8) {
+    const res = await client.get("/posts/tags", {
+        params: {
+            query,
+            limit
+        }
+    });
+    return unwrapApiResponse(res);
+}
+
 export async function getPost(id) {
     const res = await client.get(`/posts/${id}`);
     return unwrapApiResponse(res);

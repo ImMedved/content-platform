@@ -26,12 +26,12 @@ function Layout({ children }) {
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            const scrollingDown = currentScrollY > lastScrollY.current;
-
-            if (currentScrollY < 24) {
+            if (currentScrollY <= 0) {
                 setCollapsed(false);
-            } else {
-                setCollapsed(scrollingDown);
+            } else if (currentScrollY > lastScrollY.current) {
+                setCollapsed(true);
+            } else if (currentScrollY < lastScrollY.current) {
+                setCollapsed(false);
             }
 
             lastScrollY.current = currentScrollY;
