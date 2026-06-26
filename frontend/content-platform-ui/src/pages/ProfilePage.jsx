@@ -209,7 +209,7 @@ function ProfilePage() {
                         <h3 className="page-title page-title--section">User posts</h3>
                         {posts.length === 0 && <div className="muted-box">No posts yet.</div>}
                         {posts.map((post) => (
-                            <PostCard key={post.id} post={post} onTagClick={() => null} onPurchased={loadProfile} />
+                            <PostCard key={post.id} post={post} onTagClick={() => null} />
                         ))}
                     </section>
                 </div>

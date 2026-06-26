@@ -57,7 +57,6 @@ export function AuthProvider({ children }) {
             return;
         }
 
-        setLoading(true);
         await loadUser();
     }
 

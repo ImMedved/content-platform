@@ -7,10 +7,11 @@ import { useEffect, useState } from "react";
 import CommentItem from "./CommentItem";
 import { createComment, deleteComment, getComments } from "../api/comments";
 import { addReaction, getReactionUsers, getReactions, removeReaction } from "../api/reactions";
-import { purchasePost } from "../api/post";
+import { getPost, purchasePost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import { useAuth } from "../context/AuthContext";
 import { resolveMediaUrl } from "../utils/media";
+import { normalizePostDetail } from "../utils/post";
 
 function PostCard({
     post,
@@ -23,6 +24,7 @@ function PostCard({
 }) {
     const { user, refreshUser } = useAuth();
     const location = useLocation();
+    const [postState, setPostState] = useState(post);
     const [comments, setComments] = useState([]);
     const [text, setText] = useState("");
     const [reactions, setReactions] = useState([]);
@@ -37,16 +39,25 @@ function PostCard({
     const [hasReacted, setHasReacted] = useState(false);
     const [showLikers, setShowLikers] = useState(false);
 
-    const isAuthor = Number(user?.id) === Number(post?.author_id);
-    const isLocked = Boolean(post?.is_locked);
-    const canViewContent = Boolean(post?.can_view_content);
+    const currentPost = postState || post;
+    const isAuthor = Number(user?.id) === Number(currentPost?.author_id);
+    const isLocked = Boolean(currentPost?.is_locked);
+    const canViewContent = Boolean(currentPost?.can_view_content);
+    const isBought =
+        currentPost?.access_type === "paid" &&
+        canViewContent &&
+        !isAuthor;
     const postLinkState = {
         from: location.pathname + location.search,
         scrollY: window.scrollY
     };
 
     useEffect(() => {
-        if (!post?.id || isLocked) {
+        setPostState(post);
+    }, [post]);
+
+    useEffect(() => {
+        if (!currentPost?.id || isLocked) {
             setComments([]);
             setReactions([]);
             setReactionUsers([]);
@@ -55,11 +66,11 @@ function PostCard({
 
         loadComments();
         loadReactions();
-    }, [post?.id, isLocked]);
+    }, [currentPost?.id, isLocked]);
 
     async function loadComments() {
         try {
-            const res = await getComments(post.id);
+            const res = await getComments(currentPost.id);
             setComments(Array.isArray(res) ? res : []);
             setCommentError("");
         } catch (err) {
@@ -70,7 +81,7 @@ function PostCard({
 
     async function loadReactions() {
         try {
-            const res = await getReactions(post.id);
+            const res = await getReactions(currentPost.id);
             setReactions(Array.isArray(res) ? res : []);
             setReactionError("");
         } catch (err) {
@@ -83,7 +94,7 @@ function PostCard({
         setLikersLoading(true);
 
         try {
-            const data = await getReactionUsers(post.id);
+            const data = await getReactionUsers(currentPost.id);
             setReactionUsers(Array.isArray(data) ? data : []);
             setReactionError("");
         } catch (err) {
@@ -100,7 +111,7 @@ function PostCard({
 
         try {
             await createComment({
-                postId: post.id,
+                postId: currentPost.id,
                 content: text.trim()
             });
 
@@ -118,7 +129,7 @@ function PostCard({
         setReactionError("");
 
         try {
-            await addReaction(post.id);
+            await addReaction(currentPost.id);
             setHasReacted(true);
             await loadReactions();
             if (showLikers) {
@@ -136,7 +147,7 @@ function PostCard({
         setReactionError("");
 
         try {
-            await removeReaction(post.id);
+            await removeReaction(currentPost.id);
             setHasReacted(false);
             await loadReactions();
             if (showLikers) {
@@ -168,10 +179,16 @@ function PostCard({
         setPurchaseError("");
 
         try {
-            await purchasePost(post.id);
+            await purchasePost(currentPost.id);
+            const refreshed = normalizePostDetail(await getPost(currentPost.id));
+
+            if (refreshed) {
+                setPostState(refreshed);
+            }
+
             await refreshUser();
             if (typeof onPurchased === "function") {
-                await onPurchased();
+                await onPurchased(refreshed || currentPost);
             }
         } catch (err) {
             setPurchaseError(getApiErrorMessage(err));
@@ -233,20 +250,24 @@ function PostCard({
                     <div className="post-card__identity">
                         <img
                             className="avatar avatar--md"
-                            src={resolveMediaUrl(post.author_avatar_url)}
+                            src={resolveMediaUrl(currentPost.author_avatar_url)}
                             alt=""
                         />
 
                         <div>
-                            <h2 className="post-card__title">
-                                <Link to={`/posts/${post.id}`} state={postLinkState}>
-                                    {post.title || `Post #${post.id}`}
-                                </Link>
-                            </h2>
+                            <div className="post-card__title-inline">
+                                <h2 className="post-card__title">
+                                    <Link to={`/posts/${currentPost.id}`} state={postLinkState}>
+                                        {currentPost.title || `Post #${currentPost.id}`}
+                                    </Link>
+                                </h2>
 
-                            {post.author_id && (
-                                <Link className="post-card__author-link" to={`/users/${post.author_id}`}>
-                                    {post.authorName || post.author_username || `User #${post.author_id}`}
+                                {isBought && <span className="post-card__status-badge">Bought</span>}
+                            </div>
+
+                            {currentPost.author_id && (
+                                <Link className="post-card__author-link" to={`/users/${currentPost.author_id}`}>
+                                    {currentPost.authorName || currentPost.author_username || `User #${currentPost.author_id}`}
                                 </Link>
                             )}
                         </div>
@@ -254,16 +275,16 @@ function PostCard({
                 </div>
 
                 <div className="post-card__meta">
-                    <span>{post.created_at ? new Date(post.created_at).toLocaleString() : ""}</span>
-                    {post.access_type && <span>Access: {post.access_type}</span>}
-                    {typeof post.price === "number" && post.access_type === "paid" && (
-                        <span>Price: {post.price}</span>
+                    <span>{currentPost.created_at ? new Date(currentPost.created_at).toLocaleString() : ""}</span>
+                    {currentPost.access_type && <span>Access: {currentPost.access_type}</span>}
+                    {typeof currentPost.price === "number" && currentPost.access_type === "paid" && (
+                        <span>Price: {currentPost.price}</span>
                     )}
                 </div>
 
-                {Array.isArray(post.tags) && post.tags.length > 0 && (
+                {Array.isArray(currentPost.tags) && currentPost.tags.length > 0 && (
                     <div className="tag-row">
-                        {post.tags.map((tag) => (
+                        {currentPost.tags.map((tag) => (
                             <button
                                 key={tag}
                                 className="tag-chip"
@@ -278,16 +299,18 @@ function PostCard({
             </div>
 
             <div className="post-card__content">
-                {post.description && <p className={compact ? "post-card__description-preview" : ""}>{post.description}</p>}
+                {currentPost.description && (
+                    <p className={compact ? "post-card__description-preview" : ""}>{currentPost.description}</p>
+                )}
 
                 {canViewContent ? (
                     <div className="post-card__content-items">
-                        {Array.isArray(post.content) && post.content.length > 0
-                            ? post.content.map(renderContentItem)
+                        {Array.isArray(currentPost.content) && currentPost.content.length > 0
+                            ? currentPost.content.map(renderContentItem)
                             : <p>Post content is empty.</p>}
                     </div>
                 ) : (
-                    <div className="muted-box">
+                    <div className="muted-box post-card__locked-note">
                         This is a paid post. Purchase it to unlock the content.
                     </div>
                 )}
@@ -299,7 +322,7 @@ function PostCard({
                         <button
                             className="btn btn--secondary"
                             onClick={handleLike}
-                            disabled={reactionLoading || !post?.id}
+                            disabled={reactionLoading || !currentPost?.id}
                         >
                             Like
                         </button>
@@ -307,7 +330,7 @@ function PostCard({
                         <button
                             className="btn btn--secondary"
                             onClick={handleRemoveReaction}
-                            disabled={reactionLoading || !post?.id || !hasReacted}
+                            disabled={reactionLoading || !currentPost?.id || !hasReacted}
                         >
                             Remove reaction
                         </button>
@@ -318,12 +341,12 @@ function PostCard({
                         onClick={handlePurchase}
                         disabled={purchaseLoading}
                     >
-                        {purchaseLoading ? "Purchasing..." : `Buy for ${post.price}`}
+                        {purchaseLoading ? "Purchasing..." : `Buy for ${currentPost.price}`}
                     </button>
                 )}
 
                 {showOpenButton && (
-                    <Link className="btn btn--secondary" to={`/posts/${post.id}`} state={postLinkState}>
+                    <Link className="btn btn--secondary" to={`/posts/${currentPost.id}`} state={postLinkState}>
                         Open post
                     </Link>
                 )}
@@ -373,7 +396,7 @@ function PostCard({
             )}
 
             {!canViewContent && (
-                <div className="post-card__message muted-box">
+                <div className="post-card__message muted-box post-card__locked-comments-note">
                     Comments are unavailable until you purchase this post.
                 </div>
             )}
@@ -414,7 +437,7 @@ function PostCard({
                                 className="field__textarea"
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                disabled={commentLoading || !post?.id}
+                                disabled={commentLoading || !currentPost?.id}
                                 placeholder="Write a comment"
                             />
                         </div>
@@ -422,7 +445,7 @@ function PostCard({
                         <button
                             className="btn btn--primary"
                             onClick={handleComment}
-                            disabled={commentLoading || !text.trim() || !post?.id}
+                            disabled={commentLoading || !text.trim() || !currentPost?.id}
                         >
                             {commentLoading ? "Saving..." : "Add comment"}
                         </button>

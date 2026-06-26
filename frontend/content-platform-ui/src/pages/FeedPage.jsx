@@ -8,9 +8,18 @@ import { getFeed } from "../api/feed";
 import { getPosts, getTagSuggestions } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import PostCard from "../components/PostCard";
+import { useAuth } from "../context/AuthContext";
 
 function normalizeTag(value) {
     return String(value || "").trim().toLowerCase();
+}
+
+function isBoughtPost(post, currentUserId = null) {
+    return (
+        post?.access_type === "paid" &&
+        Boolean(post?.can_view_content) &&
+        Number(post?.author_id) !== Number(currentUserId)
+    );
 }
 
 function TagAutocompleteField({
@@ -69,6 +78,7 @@ function TagAutocompleteField({
 
 function FeedPage() {
     const location = useLocation();
+    const { user } = useAuth();
     const [followedPosts, setFollowedPosts] = useState([]);
     const [discoverPosts, setDiscoverPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -78,14 +88,19 @@ function FeedPage() {
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
     const [appliedIncludeTags, setAppliedIncludeTags] = useState([]);
     const [appliedExcludeTags, setAppliedExcludeTags] = useState([]);
+    const [appliedBoughtOnly, setAppliedBoughtOnly] = useState(false);
     const [draftIncludeTags, setDraftIncludeTags] = useState([]);
     const [draftExcludeTags, setDraftExcludeTags] = useState([]);
+    const [draftBoughtOnly, setDraftBoughtOnly] = useState(false);
     const [includeInput, setIncludeInput] = useState("");
     const [excludeInput, setExcludeInput] = useState("");
     const [includeSuggestions, setIncludeSuggestions] = useState([]);
     const [excludeSuggestions, setExcludeSuggestions] = useState([]);
     const followedPostIds = new Set(followedPosts.map((post) => Number(post.id)));
-    const visibleDiscoverPosts = discoverPosts.filter((post) => !followedPostIds.has(Number(post.id)));
+    const currentUserId = user?.id ?? null;
+    const visibleDiscoverPosts = discoverPosts
+        .filter((post) => !followedPostIds.has(Number(post.id)))
+        .filter((post) => !appliedBoughtOnly || isBoughtPost(post, currentUserId));
 
     useEffect(() => {
         loadFeed();
@@ -211,6 +226,7 @@ function FeedPage() {
     function openTagModal() {
         setDraftIncludeTags(appliedIncludeTags);
         setDraftExcludeTags(appliedExcludeTags);
+        setDraftBoughtOnly(appliedBoughtOnly);
         setIncludeInput("");
         setExcludeInput("");
         setIncludeSuggestions([]);
@@ -258,6 +274,7 @@ function FeedPage() {
     function applyTagFilters() {
         setAppliedIncludeTags(draftIncludeTags);
         setAppliedExcludeTags(draftExcludeTags);
+        setAppliedBoughtOnly(draftBoughtOnly);
         closeTagModal();
     }
 
@@ -266,6 +283,8 @@ function FeedPage() {
         setDraftExcludeTags([]);
         setAppliedIncludeTags([]);
         setAppliedExcludeTags([]);
+        setDraftBoughtOnly(false);
+        setAppliedBoughtOnly(false);
         closeTagModal();
     }
 
@@ -310,7 +329,6 @@ function FeedPage() {
                     <PostCard
                         key={`followed-${post.id}`}
                         post={post}
-                        onPurchased={loadFeed}
                         onTagClick={handlePostTagClick}
                         compact
                     />
@@ -322,7 +340,7 @@ function FeedPage() {
                     <h2 className="page-title page-title--section">Latest posts</h2>
                 </div>
 
-                {(appliedIncludeTags.length > 0 || appliedExcludeTags.length > 0) && (
+                {(appliedIncludeTags.length > 0 || appliedExcludeTags.length > 0 || appliedBoughtOnly) && (
                     <div className="tag-filter-summary">
                         {appliedIncludeTags.map((tag) => (
                             <span key={`include-${tag}`} className="tag-filter-pill">
@@ -334,6 +352,9 @@ function FeedPage() {
                                 Exclude #{tag}
                             </span>
                         ))}
+                        {appliedBoughtOnly && (
+                            <span className="tag-filter-pill">Bought only</span>
+                        )}
                     </div>
                 )}
 
@@ -348,7 +369,6 @@ function FeedPage() {
                         <PostCard
                             key={`discover-${post.id}`}
                             post={post}
-                            onPurchased={() => loadDiscover(appliedIncludeTags, appliedExcludeTags)}
                             onTagClick={handlePostTagClick}
                             compact
                         />
@@ -388,6 +408,16 @@ function FeedPage() {
                                 onSelectTag={(tag) => addDraftTag("exclude", tag)}
                                 onRemoveTag={(tag) => removeDraftTag("exclude", tag)}
                             />
+
+                            <label className="checkbox-field" htmlFor="bought-only-filter">
+                                <input
+                                    id="bought-only-filter"
+                                    type="checkbox"
+                                    checked={draftBoughtOnly}
+                                    onChange={(event) => setDraftBoughtOnly(event.target.checked)}
+                                />
+                                <span>Show only bought paid posts</span>
+                            </label>
 
                             <div className="form-actions">
                                 <button className="btn btn--primary" type="button" onClick={applyTagFilters}>

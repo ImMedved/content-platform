@@ -8,6 +8,14 @@ export function resolveMediaUrl(value) {
     }
 
     if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) {
+        if (
+            typeof window !== "undefined" &&
+            window.location.protocol === "https:" &&
+            value.startsWith("http://")
+        ) {
+            return value.replace(/^http:\/\//, "https://");
+        }
+
         return value;
     }
 
