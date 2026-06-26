@@ -5,7 +5,6 @@ Auth service
 - password hashing
 - jwt generation
 - session storage
-- TODO: add refresh tokens
 
 - jwt + sessions
 */

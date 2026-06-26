@@ -9,10 +9,6 @@ function NewChatPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        loadFollowing();
-    }, []);
-
     async function loadFollowing() {
         setLoading(true);
         setError("");
@@ -27,6 +23,14 @@ function NewChatPage() {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        async function initialLoad() {
+            await loadFollowing();
+        }
+
+        initialLoad();
+    }, []);
 
     return (
         <div className="page-stack">

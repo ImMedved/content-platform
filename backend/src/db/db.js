@@ -10,7 +10,6 @@ require("dotenv").config({
 
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config();
 const { getEmailHash } = require("../utils/emailSecurity");
 
 // create pool

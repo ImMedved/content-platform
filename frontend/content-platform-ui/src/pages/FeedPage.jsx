@@ -8,7 +8,7 @@ import { getFeed } from "../api/feed";
 import { getPosts, getTagSuggestions } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
 import PostCard from "../components/PostCard";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 
 function normalizeTag(value) {
     return String(value || "").trim().toLowerCase();
@@ -102,12 +102,36 @@ function FeedPage() {
         .filter((post) => !followedPostIds.has(Number(post.id)))
         .filter((post) => !appliedBoughtOnly || isBoughtPost(post, currentUserId));
 
+    function handleIncludeInputChange(value) {
+        setIncludeInput(value);
+
+        if (!normalizeTag(value)) {
+            setIncludeSuggestions([]);
+        }
+    }
+
+    function handleExcludeInputChange(value) {
+        setExcludeInput(value);
+
+        if (!normalizeTag(value)) {
+            setExcludeSuggestions([]);
+        }
+    }
+
     useEffect(() => {
-        loadFeed();
+        async function initialLoad() {
+            await loadFeed();
+        }
+
+        initialLoad();
     }, []);
 
     useEffect(() => {
-        loadDiscover(appliedIncludeTags, appliedExcludeTags);
+        async function syncDiscover() {
+            await loadDiscover(appliedIncludeTags, appliedExcludeTags);
+        }
+
+        syncDiscover();
     }, [appliedIncludeTags, appliedExcludeTags]);
 
     useEffect(() => {
@@ -118,14 +142,12 @@ function FeedPage() {
 
     useEffect(() => {
         if (!isTagModalOpen) {
-            setIncludeSuggestions([]);
             return;
         }
 
         const trimmedValue = normalizeTag(includeInput);
 
         if (!trimmedValue) {
-            setIncludeSuggestions([]);
             return;
         }
 
@@ -137,8 +159,7 @@ function FeedPage() {
                         ? tags.filter((tag) => !draftIncludeTags.includes(tag) && !draftExcludeTags.includes(tag))
                         : []
                 );
-            } catch (err) {
-                console.error("[feed] include tag suggestions failed", err);
+            } catch {
                 setIncludeSuggestions([]);
             }
         }, 150);
@@ -148,14 +169,12 @@ function FeedPage() {
 
     useEffect(() => {
         if (!isTagModalOpen) {
-            setExcludeSuggestions([]);
             return;
         }
 
         const trimmedValue = normalizeTag(excludeInput);
 
         if (!trimmedValue) {
-            setExcludeSuggestions([]);
             return;
         }
 
@@ -167,8 +186,7 @@ function FeedPage() {
                         ? tags.filter((tag) => !draftExcludeTags.includes(tag) && !draftIncludeTags.includes(tag))
                         : []
                 );
-            } catch (err) {
-                console.error("[feed] exclude tag suggestions failed", err);
+            } catch {
                 setExcludeSuggestions([]);
             }
         }, 150);
@@ -393,7 +411,7 @@ function FeedPage() {
                                 inputValue={includeInput}
                                 suggestions={includeSuggestions}
                                 placeholder="Start typing a tag"
-                                onInputChange={setIncludeInput}
+                                onInputChange={handleIncludeInputChange}
                                 onSelectTag={(tag) => addDraftTag("include", tag)}
                                 onRemoveTag={(tag) => removeDraftTag("include", tag)}
                             />
@@ -404,7 +422,7 @@ function FeedPage() {
                                 inputValue={excludeInput}
                                 suggestions={excludeSuggestions}
                                 placeholder="Start typing a tag"
-                                onInputChange={setExcludeInput}
+                                onInputChange={handleExcludeInputChange}
                                 onSelectTag={(tag) => addDraftTag("exclude", tag)}
                                 onRemoveTag={(tag) => removeDraftTag("exclude", tag)}
                             />

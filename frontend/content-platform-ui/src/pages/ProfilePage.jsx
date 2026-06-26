@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../api/follow";
 import { getApiErrorMessage } from "../api/response";
@@ -10,7 +10,7 @@ import {
     getUserProfile
 } from "../api/user";
 import PostCard from "../components/PostCard";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 import { resolveMediaUrl } from "../utils/media";
 
 function ProfilePage() {
@@ -26,11 +26,7 @@ function ProfilePage() {
     const [error, setError] = useState("");
     const [actionMessage, setActionMessage] = useState("");
 
-    useEffect(() => {
-        loadProfile();
-    }, [id]);
-
-    async function loadProfile() {
+    const loadProfile = useCallback(async () => {
         setLoading(true);
         setError("");
         setActionMessage("");
@@ -65,7 +61,15 @@ function ProfilePage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        async function initialLoad() {
+            await loadProfile();
+        }
+
+        initialLoad();
+    }, [id, loadProfile]);
 
     async function handleFollowToggle() {
         if (!profile?.id) {

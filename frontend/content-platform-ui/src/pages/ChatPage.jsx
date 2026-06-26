@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getConversation, sendMessage, waitForMessageUpdates } from "../api/message";
 import { getApiErrorMessage } from "../api/response";
@@ -30,9 +30,78 @@ function ChatPage() {
     const [error, setError] = useState("");
     const lastMessageIdRef = useRef(0);
 
+    const loadConversation = useCallback(async (isBackgroundRefresh = false) => {
+        if (!id) {
+            return;
+        }
+
+        if (!isBackgroundRefresh) {
+            setLoading(true);
+        }
+
+        setError("");
+
+        try {
+            const response = await getConversation(id);
+            const nextMessages = Array.isArray(response) ? response : [];
+
+            setMessages(nextMessages);
+            if (nextMessages.length > 0) {
+                const matchedPeer = nextMessages[0].sender.id === peerId
+                    ? nextMessages[0].sender
+                    : nextMessages[0].recipient.id === peerId
+                        ? nextMessages[0].recipient
+                        : null;
+                setPeer(matchedPeer);
+                lastMessageIdRef.current = nextMessages[nextMessages.length - 1].id;
+            } else {
+                const profile = await getUser(id);
+                setPeer(profile || null);
+            }
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+            if (!isBackgroundRefresh) {
+                setMessages([]);
+                setPeer(null);
+            }
+        } finally {
+            if (!isBackgroundRefresh) {
+                setLoading(false);
+            }
+        }
+    }, [id, peerId]);
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+
+        const trimmedDraft = draft.trim();
+
+        if (!trimmedDraft) {
+            return;
+        }
+
+        setSending(true);
+        setError("");
+
+        try {
+            const createdMessage = await sendMessage(id, trimmedDraft);
+            setMessages((current) => mergeMessages(current, [createdMessage]));
+            lastMessageIdRef.current = Math.max(lastMessageIdRef.current, createdMessage.id);
+            setDraft("");
+        } catch (err) {
+            setError(getApiErrorMessage(err));
+        } finally {
+            setSending(false);
+        }
+    }
+
     useEffect(() => {
-        loadConversation();
-    }, [id]);
+        async function initialLoad() {
+            await loadConversation();
+        }
+
+        initialLoad();
+    }, [id, loadConversation]);
 
     useEffect(() => {
         let cancelled = false;
@@ -78,72 +147,7 @@ function ChatPage() {
             cancelled = true;
             controller.abort();
         };
-    }, [id]);
-
-    async function loadConversation(isBackgroundRefresh = false) {
-        if (!id) {
-            return;
-        }
-
-        if (!isBackgroundRefresh) {
-            setLoading(true);
-        }
-
-        setError("");
-
-        try {
-            const response = await getConversation(id);
-            const nextMessages = Array.isArray(response) ? response : [];
-
-            setMessages(nextMessages);
-            if (nextMessages.length > 0) {
-                const matchedPeer = nextMessages[0].sender.id === peerId
-                    ? nextMessages[0].sender
-                    : nextMessages[0].recipient.id === peerId
-                        ? nextMessages[0].recipient
-                        : null;
-                setPeer(matchedPeer);
-                lastMessageIdRef.current = nextMessages[nextMessages.length - 1].id;
-            } else {
-                const profile = await getUser(id);
-                setPeer(profile || null);
-            }
-        } catch (err) {
-            setError(getApiErrorMessage(err));
-            if (!isBackgroundRefresh) {
-                setMessages([]);
-                setPeer(null);
-            }
-        } finally {
-            if (!isBackgroundRefresh) {
-                setLoading(false);
-            }
-        }
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-
-        const trimmedDraft = draft.trim();
-
-        if (!trimmedDraft) {
-            return;
-        }
-
-        setSending(true);
-        setError("");
-
-        try {
-            const createdMessage = await sendMessage(id, trimmedDraft);
-            setMessages((current) => mergeMessages(current, [createdMessage]));
-            lastMessageIdRef.current = Math.max(lastMessageIdRef.current, createdMessage.id);
-            setDraft("");
-        } catch (err) {
-            setError(getApiErrorMessage(err));
-        } finally {
-            setSending(false);
-        }
-    }
+    }, [id, loadConversation, peerId]);
 
     return (
         <div className="page-stack">

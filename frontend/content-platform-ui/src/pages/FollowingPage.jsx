@@ -9,10 +9,6 @@ function FollowingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
-
     async function loadUsers() {
         setLoading(true);
         setError("");
@@ -27,6 +23,14 @@ function FollowingPage() {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        async function initialLoad() {
+            await loadUsers();
+        }
+
+        initialLoad();
+    }, []);
 
     return (
         <div className="page-stack">

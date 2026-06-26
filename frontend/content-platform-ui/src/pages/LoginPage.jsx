@@ -6,7 +6,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { login as loginApi } from "../api/auth";
 import { getApiErrorMessage } from "../api/response";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 
 function LoginPage() {
     const [email, setEmail] = useState("");
@@ -17,24 +17,21 @@ function LoginPage() {
     const auth = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const routeSuccess = location.state?.success || "";
+    const routeError = location.state?.error || "";
 
     async function handleSubmit(e) {
         e.preventDefault();
         setSubmitting(true);
         setError("");
-        console.info("[login] submit", { email });
 
         try {
             const res = await loginApi({ email, password });
-            console.info("[login] response", res);
-
             const token = res.token;
             auth.login(token);
-            console.info("[login] redirecting to feed");
             navigate("/");
         } catch (err) {
             const message = getApiErrorMessage(err);
-            console.error("[login] failed", err);
             setError(message);
         } finally {
             setSubmitting(false);
@@ -42,20 +39,7 @@ function LoginPage() {
     }
 
     useEffect(() => {
-        if (location.state?.success) {
-            setError("");
-        }
-    }, [location.state]);
-
-    useEffect(() => {
-        if (location.state?.error) {
-            setError(location.state.error);
-        }
-    }, [location.state]);
-
-    useEffect(() => {
         if (auth.token) {
-            console.info("[login] token present, redirecting");
             navigate("/");
         }
     }, [auth.token, navigate]);
@@ -93,11 +77,11 @@ function LoginPage() {
                         />
                     </label>
 
-                    {error && <div className="muted-box">{error}</div>}
-                    {location.state?.success && !error && (
-                        <div className="muted-box">{location.state.success}</div>
+                    {(error || routeError) && <div className="muted-box">{error || routeError}</div>}
+                    {routeSuccess && !error && !routeError && (
+                        <div className="muted-box">{routeSuccess}</div>
                     )}
-                    {auth.authError && !error && !location.state?.success && (
+                    {auth.authError && !error && !routeError && !routeSuccess && (
                         <div className="muted-box">{auth.authError}</div>
                     )}
 

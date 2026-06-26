@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../api/response";
 import { getMyProfile, updateMe } from "../api/user";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 import { resolveMediaUrl } from "../utils/media";
 
 function readFileAsDataUrl(file) {
@@ -29,10 +29,6 @@ function EditProfilePage() {
         avatar_url: ""
     });
 
-    useEffect(() => {
-        loadProfile();
-    }, []);
-
     async function loadProfile() {
         setLoading(true);
         setError("");
@@ -57,6 +53,14 @@ function EditProfilePage() {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        async function initialLoad() {
+            await loadProfile();
+        }
+
+        initialLoad();
+    }, []);
 
     async function handleProfileSave(event) {
         event.preventDefault();

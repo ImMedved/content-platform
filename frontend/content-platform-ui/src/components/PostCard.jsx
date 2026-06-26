@@ -3,13 +3,13 @@ Post card
 */
 
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CommentItem from "./CommentItem";
 import { createComment, deleteComment, getComments } from "../api/comments";
 import { addReaction, getReactionUsers, getReactions, removeReaction } from "../api/reactions";
 import { getPost, purchasePost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 import { resolveMediaUrl } from "../utils/media";
 import { normalizePostDetail } from "../utils/post";
 
@@ -24,7 +24,7 @@ function PostCard({
 }) {
     const { user, refreshUser } = useAuth();
     const location = useLocation();
-    const [postState, setPostState] = useState(post);
+    const [postOverride, setPostOverride] = useState(null);
     const [comments, setComments] = useState([]);
     const [text, setText] = useState("");
     const [reactions, setReactions] = useState([]);
@@ -39,7 +39,8 @@ function PostCard({
     const [hasReacted, setHasReacted] = useState(false);
     const [showLikers, setShowLikers] = useState(false);
 
-    const currentPost = postState || post;
+    const currentPost = postOverride?.id === post?.id ? postOverride : post;
+    const postId = currentPost?.id ?? null;
     const isAuthor = Number(user?.id) === Number(currentPost?.author_id);
     const isLocked = Boolean(currentPost?.is_locked);
     const canViewContent = Boolean(currentPost?.can_view_content);
@@ -52,49 +53,33 @@ function PostCard({
         scrollY: window.scrollY
     };
 
-    useEffect(() => {
-        setPostState(post);
-    }, [post]);
-
-    useEffect(() => {
-        if (!currentPost?.id || isLocked) {
-            setComments([]);
-            setReactions([]);
-            setReactionUsers([]);
-            return;
-        }
-
-        loadComments();
-        loadReactions();
-    }, [currentPost?.id, isLocked]);
-
-    async function loadComments() {
+    const loadComments = useCallback(async () => {
         try {
-            const res = await getComments(currentPost.id);
+            const res = await getComments(postId);
             setComments(Array.isArray(res) ? res : []);
             setCommentError("");
         } catch (err) {
             setCommentError(getApiErrorMessage(err));
             setComments([]);
         }
-    }
+    }, [postId]);
 
-    async function loadReactions() {
+    const loadReactions = useCallback(async () => {
         try {
-            const res = await getReactions(currentPost.id);
+            const res = await getReactions(postId);
             setReactions(Array.isArray(res) ? res : []);
             setReactionError("");
         } catch (err) {
             setReactionError(getApiErrorMessage(err));
             setReactions([]);
         }
-    }
+    }, [postId]);
 
-    async function loadReactionUsers() {
+    const loadReactionUsers = useCallback(async () => {
         setLikersLoading(true);
 
         try {
-            const data = await getReactionUsers(currentPost.id);
+            const data = await getReactionUsers(postId);
             setReactionUsers(Array.isArray(data) ? data : []);
             setReactionError("");
         } catch (err) {
@@ -103,7 +88,19 @@ function PostCard({
         } finally {
             setLikersLoading(false);
         }
-    }
+    }, [postId]);
+
+    useEffect(() => {
+        if (!postId || isLocked) {
+            return;
+        }
+
+        async function syncPostMeta() {
+            await Promise.all([loadComments(), loadReactions()]);
+        }
+
+        syncPostMeta();
+    }, [postId, isLocked, loadComments, loadReactions]);
 
     async function handleComment() {
         setCommentLoading(true);
@@ -183,7 +180,7 @@ function PostCard({
             const refreshed = normalizePostDetail(await getPost(currentPost.id));
 
             if (refreshed) {
-                setPostState(refreshed);
+                setPostOverride(refreshed);
             }
 
             await refreshUser();

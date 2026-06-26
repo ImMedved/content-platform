@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register as registerApi } from "../api/auth";
 import { getApiErrorMessage } from "../api/response";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 
 function RegisterPage() {
     const [username, setUsername] = useState("");
@@ -14,7 +14,6 @@ function RegisterPage() {
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const navigate = useNavigate();
     const auth = useAuth();
 
@@ -28,20 +27,15 @@ function RegisterPage() {
         e.preventDefault();
         setSubmitting(true);
         setError("");
-        setSuccess("");
-        console.info("[register] submit", { username, email });
 
         try {
-            const res = await registerApi({ username, email, password });
-            console.info("[register] response", res);
-            setSuccess("Registration successful. Redirecting to login...");
+            await registerApi({ username, email, password });
             navigate("/login", {
                 replace: true,
                 state: { success: "Registration successful. Please log in." }
             });
         } catch (err) {
             const message = getApiErrorMessage(err);
-            console.error("[register] failed", err);
             setError(message);
         } finally {
             setSubmitting(false);
@@ -93,7 +87,6 @@ function RegisterPage() {
                     </label>
 
                     {error && <div className="muted-box">{error}</div>}
-                    {success && <div className="muted-box">{success}</div>}
 
                     <div className="form-actions">
                         <button className="btn btn--primary" type="submit" disabled={submitting}>

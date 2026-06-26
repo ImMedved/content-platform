@@ -10,7 +10,7 @@ Layout
 
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth-context";
 
 const HEADER_TRANSITION_MS = 220;
 

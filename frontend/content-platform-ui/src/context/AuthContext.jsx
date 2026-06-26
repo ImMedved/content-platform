@@ -5,11 +5,10 @@ Auth context
 - auto load user
 */
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getMyProfile } from "../api/user";
 import { getApiErrorMessage } from "../api/response";
-
-const AuthContext = createContext();
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }) {
     const [token, setToken] = useState(localStorage.getItem("token"));
@@ -18,15 +17,12 @@ export function AuthProvider({ children }) {
     const [authError, setAuthError] = useState("");
 
     async function loadUser() {
-        console.info("[auth] loading current user");
-
         try {
             const profileData = await getMyProfile();
             setUser(profileData?.user || null);
             setAuthError("");
         } catch (err) {
             const message = getApiErrorMessage(err);
-            console.error("[auth] failed to load current user", err);
             setAuthError(message);
             logout();
         } finally {
@@ -61,12 +57,52 @@ export function AuthProvider({ children }) {
     }
 
     useEffect(() => {
-        if (token) {
-            loadUser();
-        } else {
-            setUser(null);
-            setLoading(false);
+        let active = true;
+
+        async function syncAuth() {
+            if (!token) {
+                if (!active) {
+                    return;
+                }
+
+                setUser(null);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const profileData = await getMyProfile();
+
+                if (!active) {
+                    return;
+                }
+
+                setUser(profileData?.user || null);
+                setAuthError("");
+            } catch (err) {
+                if (!active) {
+                    return;
+                }
+
+                const message = getApiErrorMessage(err);
+                localStorage.removeItem("token");
+                setToken(null);
+                setUser(null);
+                setAuthError(message);
+            } finally {
+                if (active) {
+                    setLoading(false);
+                }
+            }
         }
+
+        syncAuth();
+
+        return () => {
+            active = false;
+        };
     }, [token]);
 
     return (
@@ -82,8 +118,4 @@ export function AuthProvider({ children }) {
             {children}
         </AuthContext.Provider>
     );
-}
-
-export function useAuth() {
-    return useContext(AuthContext);
 }

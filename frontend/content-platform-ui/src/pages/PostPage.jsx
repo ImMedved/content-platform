@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getPost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
@@ -13,11 +13,7 @@ function PostPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        loadPost();
-    }, [id]);
-
-    async function loadPost() {
+    const loadPost = useCallback(async () => {
         setLoading(true);
         setError("");
 
@@ -36,7 +32,15 @@ function PostPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        async function initialLoad() {
+            await loadPost();
+        }
+
+        initialLoad();
+    }, [id, loadPost]);
 
     function handleBack() {
         if (location.state?.from) {
