@@ -4,10 +4,12 @@ Comment tests
 
 const request = require("supertest");
 const app = require("../app");
-const { apiPath, responseToken } = require("./helpers/api");
+const { apiPath, responseData, responseToken } = require("./helpers/api");
 
 let token;
 let postId;
+let paidPostId;
+let outsiderToken;
 
 beforeEach(async () => {
     await request(app).post(apiPath("/auth/register")).send({
@@ -32,6 +34,30 @@ beforeEach(async () => {
         });
 
     postId = post.body.data.postId;
+
+    const paidPost = await request(app)
+        .post(apiPath("/posts"))
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+            title: "paid post",
+            content: [{ type: "text", value: "premium body" }],
+            access: { type: "paid", price: 15 }
+        });
+
+    paidPostId = responseData(paidPost).postId;
+
+    await request(app).post(apiPath("/auth/register")).send({
+        username: "comment_outsider",
+        email: "comment_outsider@test.com",
+        password: "123456"
+    });
+
+    const outsiderLogin = await request(app).post(apiPath("/auth/login")).send({
+        email: "comment_outsider@test.com",
+        password: "123456"
+    });
+
+    outsiderToken = responseToken(outsiderLogin);
 });
 
 describe("Comment API", () => {
@@ -81,5 +107,50 @@ describe("Comment API", () => {
 
         expect(deleteRes.statusCode).toBe(200);
         expect(deleteRes.body.data).toBe(true);
+    });
+
+    it("should reject empty comments", async () => {
+        const res = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                content: "   "
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/comment content is required/i);
+    });
+
+    it("should reject comments on locked paid posts", async () => {
+        const res = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${outsiderToken}`)
+            .send({
+                postId: paidPostId,
+                content: "let me in"
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/purchase this post/i);
+    });
+
+    it("should reject deleting another user's comment", async () => {
+        const createRes = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                content: "author comment"
+            });
+
+        const commentId = responseData(createRes).commentId;
+
+        const deleteRes = await request(app)
+            .delete(apiPath(`/comments/${commentId}`))
+            .set("Authorization", `Bearer ${outsiderToken}`);
+
+        expect(deleteRes.statusCode).toBe(400);
+        expect(deleteRes.body.error).toMatch(/cannot delete/i);
     });
 });

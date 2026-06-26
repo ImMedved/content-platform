@@ -41,28 +41,46 @@ REST API under `/api/v1` with a unified response shape: `{ data, error }`. Authe
 
 The contracts are described in [api] (docs/api.md)
 
-# Deply
+# Deploy
 
 ## Recreate database
 
 mysql -u [username] -p'[password]' -e "DROP DATABASE IF EXISTS \`SISIII2026_[student_number]\`; CREATE DATABASE \`SISIII2026_[student_number]\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" && mysql -u [username] -p'[password]' SISIII2026_[student_number] < database/schema.sql
 
-## Deploy Windows
-
-Run docker-compose
-
 ## Deploy Linux
 
-Run docker-compose or run `deploy-linux.sh deploy`
+Make the script executable once:
 
-Script options: 
+```bash
+chmod +x scripts/deploy-linux.sh
+chmod +x backend/scripts/test-curl.sh
+```
+
+Main commands:
+
+```bash
+./scripts/deploy-linux.sh deploy
+./scripts/deploy-linux.sh test-all
+./scripts/deploy-linux.sh start
+./scripts/deploy-linux.sh stop
+```
+
+Optional Redis-free mode:
 
 ```
-deploy   Install dependencies, build frontend, restart the app
-install  Install backend and frontend dependencies
-build    Build the frontend bundle
-start    Start backend and serve the built frontend
-stop     Stop the running backend process
-restart  Restart the running backend process
-status   Show current process and health status
+./scripts/deploy-linux.sh deploy DBOnly
+./scripts/deploy-linux.sh start DBOnly
 ```
+
+What the script does:
+
+- `deploy`: stop app, clean `node_modules`, reinstall dependencies, build frontend, start backend
+- `test-all`: run backend Jest coverage, curl smoke tests, and frontend build smoke check
+- `start`: start the last successful build only
+- `stop`: stop the running backend process
+
+Requirements:
+
+- `backend/.env` for runtime
+- `backend/.env.test` for automated tests
+- Node.js, npm, curl

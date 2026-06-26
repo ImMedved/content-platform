@@ -4,6 +4,7 @@ const { apiPath, responseData, responseToken } = require("./helpers/api");
 
 let token;
 let postId;
+let outsiderToken;
 
 beforeEach(async () => {
     await request(app).post(apiPath("/auth/register")).send({
@@ -29,6 +30,19 @@ beforeEach(async () => {
         });
 
     postId = responseData(postRes).postId;
+
+    await request(app).post(apiPath("/auth/register")).send({
+        username: "reaction_outsider",
+        email: "reaction_outsider@test.com",
+        password: "123456"
+    });
+
+    const outsiderLogin = await request(app).post(apiPath("/auth/login")).send({
+        email: "reaction_outsider@test.com",
+        password: "123456"
+    });
+
+    outsiderToken = responseToken(outsiderLogin);
 });
 
 describe("Reaction API", () => {
@@ -79,5 +93,38 @@ describe("Reaction API", () => {
         expect(likersRes.statusCode).toBe(200);
         expect(responseData(likersRes)).toHaveLength(1);
         expect(responseData(likersRes)[0].username).toBe("reaction_user");
+    });
+
+    it("should reject non-author liked-users requests", async () => {
+        const likersRes = await request(app)
+            .get(apiPath(`/posts/${postId}/reactions/users`))
+            .set("Authorization", `Bearer ${outsiderToken}`);
+
+        expect(likersRes.statusCode).toBe(400);
+        expect(likersRes.body.error).toMatch(/only the author/i);
+    });
+
+    it("should reject reactions on locked paid posts", async () => {
+        const paidPostRes = await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                title: "locked reaction post",
+                content: [{ type: "text", value: "premium" }],
+                access: { type: "paid", price: 15 }
+            });
+
+        const paidPostId = responseData(paidPostRes).postId;
+
+        const addRes = await request(app)
+            .post(apiPath("/reactions"))
+            .set("Authorization", `Bearer ${outsiderToken}`)
+            .send({
+                postId: paidPostId,
+                type: "like"
+            });
+
+        expect(addRes.statusCode).toBe(400);
+        expect(addRes.body.error).toMatch(/purchase this post/i);
     });
 });

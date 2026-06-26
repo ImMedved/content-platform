@@ -3,9 +3,10 @@
 Runnable commands:
 
 ```bash
+./scripts/deploy-linux.sh test-all
+
 cd backend
-npm run test:curl
-npm run test:all
+./scripts/test-curl.sh
 ```
 
 Base URL used below:

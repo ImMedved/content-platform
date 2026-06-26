@@ -82,4 +82,44 @@ describe("Message API", () => {
         expect(sendRes.statusCode).toBe(400);
         expect(sendRes.body.error).toMatch(/follow/i);
     });
+
+    it("should reject empty message body", async () => {
+        const author = await registerAndLogin("message_empty_author", "message_empty_author@test.com");
+        const reader = await registerAndLogin("message_empty_reader", "message_empty_reader@test.com");
+
+        await request(app)
+            .post(apiPath(`/follow/${reader.user.id}`))
+            .set("Authorization", `Bearer ${author.token}`);
+
+        const sendRes = await request(app)
+            .post(apiPath(`/messages/${reader.user.id}`))
+            .set("Authorization", `Bearer ${author.token}`)
+            .send({ body: "   " });
+
+        expect(sendRes.statusCode).toBe(400);
+        expect(sendRes.body.error).toMatch(/message body is required/i);
+    });
+
+    it("should reject messaging yourself", async () => {
+        const author = await registerAndLogin("message_self_author", "message_self_author@test.com");
+
+        const sendRes = await request(app)
+            .post(apiPath(`/messages/${author.user.id}`))
+            .set("Authorization", `Bearer ${author.token}`)
+            .send({ body: "self talk" });
+
+        expect(sendRes.statusCode).toBe(400);
+        expect(sendRes.body.error).toMatch(/cannot message yourself/i);
+    });
+
+    it("should reject invalid conversation peer id", async () => {
+        const author = await registerAndLogin("message_invalid_author", "message_invalid_author@test.com");
+
+        const conversationRes = await request(app)
+            .get(apiPath("/messages/not-a-user"))
+            .set("Authorization", `Bearer ${author.token}`);
+
+        expect(conversationRes.statusCode).toBe(400);
+        expect(conversationRes.body.error).toMatch(/invalid user id/i);
+    });
 });

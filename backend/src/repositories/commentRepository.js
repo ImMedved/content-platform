@@ -34,10 +34,12 @@ async function getComments(postId) {
 }
 
 async function deleteComment(commentId, userId) {
-    await db.query(
+    const [result] = await db.query(
         "DELETE FROM comment WHERE id = ? AND author_id = ?",
         [commentId, userId]
     );
+
+    return result.affectedRows;
 }
 
 module.exports = {

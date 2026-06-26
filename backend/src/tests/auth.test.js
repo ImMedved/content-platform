@@ -56,6 +56,51 @@ describe("Auth API", () => {
         expect(responseData(res).token).toBeDefined();
     });
 
+    it("should reject duplicate registration", async () => {
+        const duplicateEmail = `duplicate_${Date.now()}@test.com`;
+
+        await request(app)
+            .post(apiPath("/auth/register"))
+            .send({
+                username: "dup_user_a",
+                email: duplicateEmail,
+                password: "123456"
+            });
+
+        const res = await request(app)
+            .post(apiPath("/auth/register"))
+            .send({
+                username: "dup_user_b",
+                email: duplicateEmail,
+                password: "123456"
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toBeTruthy();
+    });
+
+    it("should reject login with wrong password", async () => {
+        const loginEmail = `wrong_password_${Date.now()}@test.com`;
+
+        await request(app)
+            .post(apiPath("/auth/register"))
+            .send({
+                username: "wrong_password_user",
+                email: loginEmail,
+                password: "123456"
+            });
+
+        const res = await request(app)
+            .post(apiPath("/auth/login"))
+            .send({
+                email: loginEmail,
+                password: "bad-password"
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/invalid password/i);
+    });
+
     it("should create starter wallet on registration", async () => {
         const walletEmail = `wallet_${Date.now()}@test.com`;
 

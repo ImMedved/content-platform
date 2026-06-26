@@ -6,6 +6,11 @@ Redis config
 
 const { createClient } = require("redis");
 
+function isRedisDisabled() {
+    const value = String(process.env.DB_ONLY || process.env.DISABLE_REDIS || "").trim().toLowerCase();
+    return value === "1" || value === "true" || value === "yes";
+}
+
 const redisClient = createClient({
     url: process.env.REDIS_URL || "redis://localhost:6379",
     socket: {
@@ -25,6 +30,10 @@ function attachRedisLogging(client, label = "Redis") {
 }
 
 async function connectRedisIfAvailable() {
+    if (isRedisDisabled()) {
+        return false;
+    }
+
     if (redisClient.isOpen) {
         return true;
     }
@@ -39,6 +48,10 @@ async function connectRedisIfAvailable() {
 }
 
 async function createRedisSubscriberIfAvailable() {
+    if (isRedisDisabled()) {
+        return null;
+    }
+
     const ready = await connectRedisIfAvailable();
 
     if (!ready) {
@@ -70,3 +83,4 @@ async function createRedisSubscriberIfAvailable() {
 module.exports = redisClient;
 module.exports.connectRedisIfAvailable = connectRedisIfAvailable;
 module.exports.createRedisSubscriberIfAvailable = createRedisSubscriberIfAvailable;
+module.exports.isRedisDisabled = isRedisDisabled;

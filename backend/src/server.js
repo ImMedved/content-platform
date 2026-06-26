@@ -14,7 +14,9 @@ const PORT = process.env.PORT || 5000;
 async function start() {
     try {
         const redisReady = await redisClient.connectRedisIfAvailable();
-        if (redisReady) {
+        if (redisClient.isRedisDisabled && redisClient.isRedisDisabled()) {
+            console.log("Redis disabled by DB_ONLY flag");
+        } else if (redisReady) {
             console.log("Redis connected");
         }
 

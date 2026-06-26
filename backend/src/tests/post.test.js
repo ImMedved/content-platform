@@ -158,4 +158,73 @@ describe("Post API", () => {
         expect(responseData(unlockedRes).content).toHaveLength(1);
     });
 
+    it("should reject buying your own paid post", async () => {
+        const paidPostRes = await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                title: "self-owned paid post",
+                description: "premium",
+                content: [{ type: "text", value: "secret body" }],
+                access: { type: "paid", price: 10 }
+            });
+
+        const paidPostId = responseData(paidPostRes).postId;
+
+        const purchaseRes = await request(app)
+            .post(apiPath(`/posts/${paidPostId}/purchase`))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(purchaseRes.statusCode).toBe(400);
+        expect(purchaseRes.body.error).toMatch(/already own this post/i);
+    });
+
+    it("should reject buying a free post", async () => {
+        const purchaseRes = await request(app)
+            .post(apiPath(`/posts/${postId}/purchase`))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(purchaseRes.statusCode).toBe(400);
+        expect(purchaseRes.body.error).toMatch(/does not require purchase/i);
+    });
+
+    it("should reject purchase when wallet balance is insufficient", async () => {
+        await request(app).post(apiPath("/auth/register")).send({
+            username: "poor_buyer",
+            email: "poor_buyer@test.com",
+            password: "123456"
+        });
+
+        const buyerLogin = await request(app).post(apiPath("/auth/login")).send({
+            email: "poor_buyer@test.com",
+            password: "123456"
+        });
+        const buyerToken = responseToken(buyerLogin);
+
+        const buyerMe = await request(app)
+            .get(apiPath("/users/me"))
+            .set("Authorization", `Bearer ${buyerToken}`);
+
+        await db.query("UPDATE wallet SET balance = 5 WHERE user_id = ?", [responseData(buyerMe).id]);
+
+        const paidPostRes = await request(app)
+            .post(apiPath("/posts"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                title: "expensive paid post",
+                description: "premium",
+                content: [{ type: "text", value: "secret body" }],
+                access: { type: "paid", price: 15 }
+            });
+
+        const paidPostId = responseData(paidPostRes).postId;
+
+        const purchaseRes = await request(app)
+            .post(apiPath(`/posts/${paidPostId}/purchase`))
+            .set("Authorization", `Bearer ${buyerToken}`);
+
+        expect(purchaseRes.statusCode).toBe(400);
+        expect(purchaseRes.body.error).toMatch(/insufficient funds/i);
+    });
+
 });

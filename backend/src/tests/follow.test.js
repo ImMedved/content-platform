@@ -66,4 +66,39 @@ describe("Follow API", () => {
         expect(unfollowRes.statusCode).toBe(200);
         expect(responseData(unfollowRes)).toBe(true);
     });
+
+    it("should reject following yourself", async () => {
+        const meRes = await request(app)
+            .get(apiPath("/users/me"))
+            .set("Authorization", `Bearer ${followerToken}`);
+
+        const res = await request(app)
+            .post(apiPath(`/follow/${responseData(meRes).id}`))
+            .set("Authorization", `Bearer ${followerToken}`);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/cannot follow yourself/i);
+    });
+
+    it("should reject duplicate follow", async () => {
+        await request(app)
+            .post(apiPath(`/follow/${authorId}`))
+            .set("Authorization", `Bearer ${followerToken}`);
+
+        const res = await request(app)
+            .post(apiPath(`/follow/${authorId}`))
+            .set("Authorization", `Bearer ${followerToken}`);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/already following/i);
+    });
+
+    it("should reject unfollow when relation does not exist", async () => {
+        const res = await request(app)
+            .delete(apiPath(`/follow/${authorId}`))
+            .set("Authorization", `Bearer ${followerToken}`);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.error).toMatch(/not following/i);
+    });
 });

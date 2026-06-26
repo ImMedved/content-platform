@@ -1,73 +1,49 @@
 # Linux deployment without Docker
 
-This project can now be deployed on a Linux server without starting Docker. The backend serves the built frontend bundle itself, so the app runs as a single Node.js process plus the existing database.
+This project is deployed on Linux as one Node.js backend process that also serves the built frontend bundle. Docker files can stay in the repo for local work, but the deployment flow below does not use Docker at all.
 
 ## Prerequisites
 
-- Linux server with `bash`, `node`, `npm`, and `curl`
-- Existing MySQL-compatible database
-- Optional Redis instance
+- Node.js
+- npm
+- curl
+- existing MySQL-compatible database
+- `backend/.env` for runtime
+- `backend/.env.test` for automated tests
 
-## First-time setup
-
-1. Copy the project to the server.
-2. Copy `backend/.env.production.example` to `backend/.env`.
-3. Fill in the real database credentials and secrets in `backend/.env`.
-4. Make the script executable:
+## One-time setup
 
 ```bash
 chmod +x scripts/deploy-linux.sh
+chmod +x backend/scripts/test-curl.sh
 ```
 
 ## Main commands
 
-Install local Redis on Debian/Ubuntu:
-
-```bash
-chmod +x scripts/install-redis-linux.sh
-./scripts/install-redis-linux.sh
-```
-
-Full deploy:
-
 ```bash
 ./scripts/deploy-linux.sh deploy
-```
-
-Restart only:
-
-```bash
-./scripts/deploy-linux.sh restart
-```
-
-Status:
-
-```bash
-./scripts/deploy-linux.sh status
-```
-
-Stop:
-
-```bash
+./scripts/deploy-linux.sh test-all
+./scripts/deploy-linux.sh start
 ./scripts/deploy-linux.sh stop
 ```
 
-## What the script does
+Optional Redis-free mode:
 
-1. Checks that `backend/.env` exists.
-2. Installs backend dependencies with `npm ci`.
-3. Installs frontend dependencies with `npm ci`.
-4. Builds the frontend with `VITE_API_BASE_URL=/api/v1`.
-5. Starts the backend in production mode with `nohup`.
-6. Waits for `http://127.0.0.1:PORT/health` to become healthy.
+```bash
+./scripts/deploy-linux.sh deploy DBOnly
+./scripts/deploy-linux.sh start DBOnly
+```
 
-## Runtime files
+## What each command does
 
-- PID file: `.deploy/run/backend.pid`
-- Logs: `.deploy/logs/backend.log`
+- `deploy`: stop app, clean `node_modules`, reinstall dependencies, build frontend, start backend
+- `test-all`: run backend Jest coverage, curl smoke tests, and frontend build smoke check
+- `start`: start the last successful build
+- `stop`: stop the running backend
 
 ## Notes
 
-- Docker files were left untouched and can still be used locally.
-- Redis is used for feed cache, tag autocomplete catalog, and realtime message notifications. If it is unavailable, the backend falls back to DB lookups and in-process message waiting.
-- The backend serves `frontend/content-platform-ui/dist`, so no separate Vite or nginx process is required for a basic deployment.
+- Before dependency reinstall, the script prints any lingering `.nfs*` handles for `bcrypt` and removes backend/frontend `node_modules` twice to match the current server workaround.
+- `DBOnly` sets `DB_ONLY=1` and fully disables Redis for that run.
+- Runtime PID file: `.deploy/run/backend.pid`
+- Runtime logs: `.deploy/logs/backend.log`

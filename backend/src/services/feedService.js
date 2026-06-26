@@ -12,27 +12,38 @@ async function getFeed(userId) {
     const postService = require("./postService");
 
     if (redisClient && redisClient.isOpen) {
-        const cached = await redisClient.get(cacheKey);
-        if (cached) {
-            return JSON.parse(cached);
+        try {
+            const cached = await redisClient.get(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (err) {
+            console.warn("Redis feed cache read failed:", err.message);
         }
-
-        const rawPosts = await feedRepo.getFeed(userId);
-        const data = await postService.hydratePosts(rawPosts, userId);
-
-        await redisClient.setEx(cacheKey, 60, JSON.stringify(data));
-
-        return data;
     }
 
     const rawPosts = await feedRepo.getFeed(userId);
-    return postService.hydratePosts(rawPosts, userId);
+    const data = await postService.hydratePosts(rawPosts, userId);
+
+    if (redisClient && redisClient.isOpen) {
+        try {
+            await redisClient.setEx(cacheKey, 60, JSON.stringify(data));
+        } catch (err) {
+            console.warn("Redis feed cache write failed:", err.message);
+        }
+    }
+
+    return data;
 }
 
 async function invalidateFeed(userId) {
     const cacheKey = `feed:${userId}`;
     if (redisClient && redisClient.isOpen) {
-        await redisClient.del(cacheKey);
+        try {
+            await redisClient.del(cacheKey);
+        } catch (err) {
+            console.warn("Redis feed cache invalidation failed:", err.message);
+        }
     }
 }
 

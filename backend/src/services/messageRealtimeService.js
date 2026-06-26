@@ -37,15 +37,19 @@ async function notifyUsers(userIds) {
     const uniqueUserIds = [...new Set(userIds.map((item) => String(item)))];
 
     if (redisClient.isOpen) {
-        const pipeline = redisClient.multi();
+        try {
+            const pipeline = redisClient.multi();
 
-        for (const userId of uniqueUserIds) {
-            pipeline.incr(getVersionKey(userId));
-            pipeline.publish(getChannelName(userId), "message");
+            for (const userId of uniqueUserIds) {
+                pipeline.incr(getVersionKey(userId));
+                pipeline.publish(getChannelName(userId), "message");
+            }
+
+            await pipeline.exec();
+            return;
+        } catch (err) {
+            console.warn("Redis message notify failed, falling back to local listeners:", err.message);
         }
-
-        await pipeline.exec();
-        return;
     }
 
     for (const userId of uniqueUserIds) {
@@ -64,8 +68,12 @@ async function notifyUsers(userIds) {
 
 async function getUserVersion(userId) {
     if (redisClient.isOpen) {
-        const version = await redisClient.get(getVersionKey(userId));
-        return Number(version || 0);
+        try {
+            const version = await redisClient.get(getVersionKey(userId));
+            return Number(version || 0);
+        } catch (err) {
+            console.warn("Redis message version read failed, using local version:", err.message);
+        }
     }
 
     return versionByUser.get(String(userId)) || 0;
@@ -148,11 +156,16 @@ async function waitForUserUpdate(userId, sinceVersion, timeoutMs = 25000) {
             finish();
         }, timeoutMs);
 
-        subscriber.subscribe(getChannelName(userId), async () => {
-            await finish();
-        }).catch(async () => {
-            await finish();
-        });
+        try {
+            subscriber.subscribe(getChannelName(userId), async () => {
+                await finish();
+            }).catch(async () => {
+                await finish();
+            });
+        } catch (err) {
+            console.warn("Redis message subscription failed, using timeout fallback:", err.message);
+            finish();
+        }
     });
 }
 

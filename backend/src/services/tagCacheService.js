@@ -8,22 +8,27 @@ async function ensureCatalogLoaded() {
         return false;
     }
 
-    const existingCount = await redisClient.zCard(TAG_CATALOG_KEY);
+    try {
+        const existingCount = await redisClient.zCard(TAG_CATALOG_KEY);
 
-    if (existingCount > 0) {
+        if (existingCount > 0) {
+            return true;
+        }
+
+        const tags = await postRepo.listAllTags();
+
+        if (tags.length > 0) {
+            await redisClient.zAdd(
+                TAG_CATALOG_KEY,
+                tags.map((tag) => ({ score: 0, value: tag }))
+            );
+        }
+
         return true;
+    } catch (err) {
+        console.warn("Redis tag catalog bootstrap failed:", err.message);
+        return false;
     }
-
-    const tags = await postRepo.listAllTags();
-
-    if (tags.length > 0) {
-        await redisClient.zAdd(
-            TAG_CATALOG_KEY,
-            tags.map((tag) => ({ score: 0, value: tag }))
-        );
-    }
-
-    return true;
 }
 
 async function addTags(tags) {
@@ -39,10 +44,14 @@ async function addTags(tags) {
         return;
     }
 
-    await redisClient.zAdd(
-        TAG_CATALOG_KEY,
-        normalizedTags.map((tag) => ({ score: 0, value: tag }))
-    );
+    try {
+        await redisClient.zAdd(
+            TAG_CATALOG_KEY,
+            normalizedTags.map((tag) => ({ score: 0, value: tag }))
+        );
+    } catch (err) {
+        console.warn("Redis tag catalog update failed:", err.message);
+    }
 }
 
 async function getSuggestions(query = "", limit = 8) {
@@ -50,27 +59,36 @@ async function getSuggestions(query = "", limit = 8) {
         return null;
     }
 
-    await ensureCatalogLoaded();
+    const ready = await ensureCatalogLoaded();
+
+    if (!ready) {
+        return null;
+    }
 
     const normalizedQuery = String(query || "").trim().toLowerCase();
     const safeLimit = Math.max(1, Math.min(Number(limit) || 8, 20));
 
-    if (!normalizedQuery) {
-        return redisClient.zRange(TAG_CATALOG_KEY, 0, safeLimit - 1);
-    }
-
-    const upperBound = `${normalizedQuery}\xff`;
-    return redisClient.zRangeByLex(
-        TAG_CATALOG_KEY,
-        `[${normalizedQuery}`,
-        `[${upperBound}`,
-        {
-            LIMIT: {
-                offset: 0,
-                count: safeLimit
-            }
+    try {
+        if (!normalizedQuery) {
+            return redisClient.zRange(TAG_CATALOG_KEY, 0, safeLimit - 1);
         }
-    );
+
+        const upperBound = `${normalizedQuery}\xff`;
+        return redisClient.zRangeByLex(
+            TAG_CATALOG_KEY,
+            `[${normalizedQuery}`,
+            `[${upperBound}`,
+            {
+                LIMIT: {
+                    offset: 0,
+                    count: safeLimit
+                }
+            }
+        );
+    } catch (err) {
+        console.warn("Redis tag suggestion lookup failed:", err.message);
+        return null;
+    }
 }
 
 module.exports = {
