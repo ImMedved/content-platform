@@ -16,6 +16,17 @@ async function createPost(authorId, title, description, previewUrl = null) {
     return res.insertId;
 }
 
+async function updatePost(postId, authorId, title, description, previewUrl = null) {
+    const [result] = await db.query(
+        `UPDATE post
+         SET title = ?, description = ?, preview_url = ?
+         WHERE id = ? AND author_id = ?`,
+        [title, description, previewUrl, postId, authorId]
+    );
+
+    return result.affectedRows;
+}
+
 async function addContent(postId, content) {
     for (const item of content) {
         await db.query(
@@ -30,11 +41,30 @@ async function addContent(postId, content) {
     }
 }
 
+async function replaceContent(postId, content) {
+    await db.query("DELETE FROM post_content WHERE post_id = ?", [postId]);
+
+    if (Array.isArray(content) && content.length > 0) {
+        await addContent(postId, content);
+    }
+}
+
 async function setAccess(postId, access) {
     await db.query(
         "INSERT INTO post_access (post_id, access_type, price) VALUES (?, ?, ?)",
         [postId, access.type, access.price || 0]
     );
+}
+
+async function updateAccess(postId, access) {
+    const [result] = await db.query(
+        "UPDATE post_access SET access_type = ?, price = ? WHERE post_id = ?",
+        [access.type, access.price || 0, postId]
+    );
+
+    if (result.affectedRows === 0) {
+        await setAccess(postId, access);
+    }
 }
 
 async function syncTags(postId, tags) {
@@ -161,7 +191,7 @@ async function getPostTagMap(postIds) {
     return map;
 }
 
-async function listPosts(limit = 20, authorId = null, tag = null, includeTags = [], excludeTags = []) {
+async function listPosts(limit = 20, authorId = null, tag = null, includeTags = [], excludeTags = [], authorQuery = null) {
     let query = `
         SELECT
             p.*,
@@ -207,6 +237,11 @@ async function listPosts(limit = 20, authorId = null, tag = null, includeTags = 
     if (authorId) {
         conditions.push("p.author_id = ?");
         params.push(authorId);
+    }
+
+    if (authorQuery) {
+        conditions.push("(u.username LIKE ? OR u.display_name LIKE ?)");
+        params.push(`%${String(authorQuery).trim()}%`, `%${String(authorQuery).trim()}%`);
     }
 
     if (conditions.length > 0) {
@@ -283,10 +318,52 @@ async function getReactionUsers(postId) {
     return rows;
 }
 
+async function deletePost(postId, authorId) {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [[post]] = await connection.query(
+            "SELECT id FROM post WHERE id = ? AND author_id = ? FOR UPDATE",
+            [postId, authorId]
+        );
+
+        if (!post) {
+            await connection.rollback();
+            return 0;
+        }
+
+        await connection.query("DELETE FROM access_grant WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM payment_transaction WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM reaction WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM comment WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM post_content WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM post_access WHERE post_id = ?", [postId]);
+        await connection.query("DELETE FROM post_tag WHERE post_id = ?", [postId]);
+
+        const [result] = await connection.query(
+            "DELETE FROM post WHERE id = ? AND author_id = ?",
+            [postId, authorId]
+        );
+
+        await connection.commit();
+        return result.affectedRows;
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+}
+
 module.exports = {
     createPost,
+    updatePost,
     addContent,
+    replaceContent,
     setAccess,
+    updateAccess,
     syncTags,
     getPostById,
     getPostAccessMap,
@@ -296,5 +373,6 @@ module.exports = {
     listTags,
     listAllTags,
     getPostOwner,
-    getReactionUsers
+    getReactionUsers,
+    deletePost
 };

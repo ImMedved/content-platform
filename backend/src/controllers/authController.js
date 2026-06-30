@@ -14,8 +14,8 @@ async function register(req, res) {
 // login endpoint
 async function login(req, res) {
     try {
-        const result = await authService.login(req.body);
-        ok(res, result);
+        const result = await authService.login(req.body); // Call the login function from authService with the request body
+        ok(res, result); // Send a successful response with the result to the client
     } catch (err) {
         fail(res, 400, err.message);
     }

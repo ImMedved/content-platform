@@ -4,7 +4,9 @@ Server entry
 - redis connect
 */
 
-require("dotenv").config();
+require("dotenv").config(); 
+// загружаем переменные окружения из .env файла в process.env
+//Без этого пришлось бы писать process.env.DB_HOST, process.env.DB_USER и т.д. в коде, что не безопасно и неудобно
 
 const app = require("./app");
 const redisClient = require("./config/redis");

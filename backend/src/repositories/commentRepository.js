@@ -17,18 +17,19 @@ async function createComment(postId, userId, content) {
 }
 
 async function getComments(postId) {
-    const [rows] = await db.query(
-        `SELECT
-            c.*,
-            u.username AS author_username,
-            u.display_name AS authorName,
-            u.avatar_url AS author_avatar_url
-        FROM comment c
-        INNER JOIN users u ON u.id = c.author_id
-        WHERE c.post_id = ?
-        ORDER BY c.created_at ASC`,
-        [postId]
-    );
+    const query = [
+        "SELECT",
+        "    c.*,",
+        "    u.username AS author_username,",
+        "    u.display_name AS authorName,",
+        "    u.avatar_url AS author_avatar_url",
+        "FROM comment c",
+        "INNER JOIN users u ON u.id = c.author_id",
+        "WHERE c.post_id = ?",
+        "ORDER BY c.created_at ASC"
+    ].join(" ");
+
+    const [rows] = await db.query(query, [postId]);
 
     return rows;
 }

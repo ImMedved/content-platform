@@ -26,11 +26,11 @@ export async function getTagSuggestions(query, limit = 8) {
 }
 
 export async function getPost(id) {
-    const res = await client.get(`/posts/${id}`);
+    const res = await client.get("/posts/" + id);
     return unwrapApiResponse(res);
 }
 
 export async function purchasePost(id) {
-    const res = await client.post(`/posts/${id}/purchase`);
+    const res = await client.post("/posts/" + id + "/purchase");
     return unwrapApiResponse(res);
 }

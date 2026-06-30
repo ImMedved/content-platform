@@ -1,10 +1,8 @@
 /*
 Post controller
 */
-
 const postService = require("../services/postService");
 const { ok, fail } = require("../utils/apiResponse");
-
 function parseTagList(value) {
     if (Array.isArray(value)) {
         return value
@@ -12,13 +10,11 @@ function parseTagList(value) {
             .map((item) => item.trim().toLowerCase())
             .filter(Boolean);
     }
-
     return String(value || "")
         .split(",")
         .map((item) => item.trim().toLowerCase())
         .filter(Boolean);
 }
-
 async function createPost(req, res) {
     try {
         const result = await postService.createPost(req.user.userId, req.body);
@@ -27,7 +23,6 @@ async function createPost(req, res) {
         fail(res, 400, err.message);
     }
 }
-
 async function getPost(req, res) {
     try {
         const data = await postService.getPost(req.params.id, req.user?.userId || null);
@@ -36,7 +31,6 @@ async function getPost(req, res) {
         fail(res, 500, err.message);
     }
 }
-
 async function listPosts(req, res) {
     try {
         const data = await postService.listPosts(
@@ -54,7 +48,6 @@ async function listPosts(req, res) {
         fail(res, 500, err.message);
     }
 }
-
 async function listTags(req, res) {
     try {
         const data = await postService.listTags(req.query.query || "", req.query.limit);
@@ -63,7 +56,6 @@ async function listTags(req, res) {
         fail(res, 500, err.message);
     }
 }
-
 async function purchasePost(req, res) {
     try {
         const data = await postService.purchasePost(req.user.userId, req.params.id);
@@ -72,7 +64,6 @@ async function purchasePost(req, res) {
         fail(res, 400, err.message);
     }
 }
-
 async function getReactionUsers(req, res) {
     try {
         const data = await postService.getReactionUsers(req.params.id, req.user.userId);
@@ -81,7 +72,6 @@ async function getReactionUsers(req, res) {
         fail(res, 400, err.message);
     }
 }
-
 module.exports = {
     createPost,
     getPost,

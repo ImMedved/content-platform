@@ -16,6 +16,7 @@ import FollowingPage from "./pages/FollowingPage";
 import MessagesPage from "./pages/MessagesPage";
 import NewChatPage from "./pages/NewChatPage";
 import ChatPage from "./pages/ChatPage";
+// import EditPostPage from "./pages/EditPostPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -137,6 +138,21 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
+
+                {/*
+                Ready-to-enable route for post editing from the profile page.
+                Uncomment together with the profile action buttons.
+                <Route
+                    path="/posts/:id/edit"
+                    element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <EditPostPage />
+                            </Layout>
+                        </ProtectedRoute>
+                    }
+                />
+                */}
             </Routes>
         </BrowserRouter>
     );

@@ -89,9 +89,11 @@ function FeedPage() {
     const [appliedIncludeTags, setAppliedIncludeTags] = useState([]);
     const [appliedExcludeTags, setAppliedExcludeTags] = useState([]);
     const [appliedBoughtOnly, setAppliedBoughtOnly] = useState(false);
+    const [appliedAuthorQuery, setAppliedAuthorQuery] = useState("");
     const [draftIncludeTags, setDraftIncludeTags] = useState([]);
     const [draftExcludeTags, setDraftExcludeTags] = useState([]);
     const [draftBoughtOnly, setDraftBoughtOnly] = useState(false);
+    const [draftAuthorQuery, setDraftAuthorQuery] = useState("");
     const [includeInput, setIncludeInput] = useState("");
     const [excludeInput, setExcludeInput] = useState("");
     const [includeSuggestions, setIncludeSuggestions] = useState([]);
@@ -128,11 +130,11 @@ function FeedPage() {
 
     useEffect(() => {
         async function syncDiscover() {
-            await loadDiscover(appliedIncludeTags, appliedExcludeTags);
+            await loadDiscover(appliedIncludeTags, appliedExcludeTags, appliedAuthorQuery);
         }
 
         syncDiscover();
-    }, [appliedIncludeTags, appliedExcludeTags]);
+    }, [appliedIncludeTags, appliedExcludeTags, appliedAuthorQuery]);
 
     useEffect(() => {
         if (typeof location.state?.restoreScrollY === "number") {
@@ -209,7 +211,7 @@ function FeedPage() {
         }
     }
 
-    async function loadDiscover(includeTags = [], excludeTags = []) {
+    async function loadDiscover(includeTags = [], excludeTags = [], authorQuery = "") {
         setDiscoverLoading(true);
         setDiscoverError("");
 
@@ -222,6 +224,10 @@ function FeedPage() {
 
             if (excludeTags.length > 0) {
                 params.excludeTags = excludeTags.join(",");
+            }
+
+            if (String(authorQuery || "").trim()) {
+                params.author = String(authorQuery).trim();
             }
 
             const data = await getPosts(params);
@@ -237,7 +243,7 @@ function FeedPage() {
     async function refreshAll() {
         await Promise.all([
             loadFeed(),
-            loadDiscover(appliedIncludeTags, appliedExcludeTags)
+            loadDiscover(appliedIncludeTags, appliedExcludeTags, appliedAuthorQuery)
         ]);
     }
 
@@ -245,6 +251,7 @@ function FeedPage() {
         setDraftIncludeTags(appliedIncludeTags);
         setDraftExcludeTags(appliedExcludeTags);
         setDraftBoughtOnly(appliedBoughtOnly);
+        setDraftAuthorQuery(appliedAuthorQuery);
         setIncludeInput("");
         setExcludeInput("");
         setIncludeSuggestions([]);
@@ -293,6 +300,7 @@ function FeedPage() {
         setAppliedIncludeTags(draftIncludeTags);
         setAppliedExcludeTags(draftExcludeTags);
         setAppliedBoughtOnly(draftBoughtOnly);
+        setAppliedAuthorQuery(draftAuthorQuery);
         closeTagModal();
     }
 
@@ -303,6 +311,8 @@ function FeedPage() {
         setAppliedExcludeTags([]);
         setDraftBoughtOnly(false);
         setAppliedBoughtOnly(false);
+        setDraftAuthorQuery("");
+        setAppliedAuthorQuery("");
         closeTagModal();
     }
 
@@ -373,6 +383,9 @@ function FeedPage() {
                         {appliedBoughtOnly && (
                             <span className="tag-filter-pill">Bought only</span>
                         )}
+                        {appliedAuthorQuery && (
+                            <span className="tag-filter-pill">Author: {appliedAuthorQuery}</span>
+                        )}
                     </div>
                 )}
 
@@ -426,6 +439,21 @@ function FeedPage() {
                                 onSelectTag={(tag) => addDraftTag("exclude", tag)}
                                 onRemoveTag={(tag) => removeDraftTag("exclude", tag)}
                             />
+
+                            {/*
+                            Ready-to-enable author search.
+                            Backend support is already wired through the `author` query param.
+                            Uncomment this block to expose a single-value author filter in the modal.
+                            <label className="field">
+                                <span className="field__label">Author</span>
+                                <input
+                                    className="field__input"
+                                    value={draftAuthorQuery}
+                                    onChange={(event) => setDraftAuthorQuery(event.target.value)}
+                                    placeholder="Username or display name"
+                                />
+                            </label>
+                            */}
 
                             <label className="checkbox-field" htmlFor="bought-only-filter">
                                 <input

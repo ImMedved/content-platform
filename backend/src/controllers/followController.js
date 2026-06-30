@@ -7,7 +7,8 @@ const { ok, fail } = require("../utils/apiResponse");
 
 async function follow(req, res) {
     try {
-        await followService.follow(req.user.userId, req.params.userId);
+        await followService.follow(req.user.userId, req.params.userId); 
+        //Вызывает функцию follow из followService с параметрами userId текущего пользователя и userId пользователя, на которого нужно подписаться
         ok(res, true);
     } catch (err) {
         fail(res, 400, err.message);

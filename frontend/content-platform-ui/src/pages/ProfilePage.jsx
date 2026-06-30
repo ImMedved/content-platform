@@ -101,7 +101,7 @@ function ProfilePage() {
         }
     }
 
-    const isOwnProfile = profile?.id === currentUser?.id || id === "me";
+        const isOwnProfile = profile?.id === currentUser?.id || id === "me";
     const isFollowingProfile = profile ? myFollowingIds.includes(profile.id) : false;
 
     return (
@@ -213,6 +213,7 @@ function ProfilePage() {
                         <h3 className="page-title page-title--section">User posts</h3>
                         {posts.length === 0 && <div className="muted-box">No posts yet.</div>}
                         {posts.map((post) => (
+                                
                             <PostCard key={post.id} post={post} onTagClick={() => null} />
                         ))}
                     </section>
@@ -223,3 +224,4 @@ function ProfilePage() {
 }
 
 export default ProfilePage;
+

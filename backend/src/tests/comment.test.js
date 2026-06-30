@@ -153,4 +153,47 @@ describe("Comment API", () => {
         expect(deleteRes.statusCode).toBe(400);
         expect(deleteRes.body.error).toMatch(/cannot delete/i);
     });
+
+    it("should update own comment", async () => {
+        const createRes = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                postId,
+                content: "draft comment"
+            });
+
+        const commentId = responseData(createRes).commentId;
+
+        const updateRes = await request(app)
+            .put(apiPath(`/comments/${commentId}`))
+            .set("Authorization", `Bearer ${token}`)
+            .send({
+                content: "updated comment"
+            });
+
+        expect(updateRes.statusCode).toBe(200);
+
+        const commentsRes = await request(app).get(apiPath(`/comments/post/${postId}`));
+        expect(responseData(commentsRes)[0].content).toBe("updated comment");
+    });
+
+    it("should allow the post author to delete another user's comment", async () => {
+        const createRes = await request(app)
+            .post(apiPath("/comments"))
+            .set("Authorization", `Bearer ${outsiderToken}`)
+            .send({
+                postId,
+                content: "reader comment"
+            });
+
+        const commentId = responseData(createRes).commentId;
+
+        const deleteRes = await request(app)
+            .delete(apiPath(`/comments/${commentId}`))
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(deleteRes.statusCode).toBe(200);
+        expect(responseData(deleteRes)).toBe(true);
+    });
 });

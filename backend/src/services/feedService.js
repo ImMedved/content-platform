@@ -8,10 +8,11 @@ const feedRepo = require("../repositories/feedRepository");
 const redisClient = require("../config/redis");
 
 async function getFeed(userId) {
-    const cacheKey = `feed:${userId}`;
-    const postService = require("./postService");
+    const cacheKey = `feed:${userId}`; // ключ для кэша в Redis, чтобы хранить ленту пользователя по его идентификатору
+    const postService = require("./postService"); // импортируем postService внутри функции, чтобы избежать циклической зависимости
 
-    if (redisClient && redisClient.isOpen) {
+    // проверяем, есть ли кэш в Redis для ленты пользователя, если есть, то возвращаем его, иначе получаем ленту из базы данных и сохраняем в кэш
+    if (redisClient && redisClient.isOpen) { 
         try {
             const cached = await redisClient.get(cacheKey);
             if (cached) {
@@ -22,8 +23,10 @@ async function getFeed(userId) {
         }
     }
 
-    const rawPosts = await feedRepo.getFeed(userId);
-    const data = await postService.hydratePosts(rawPosts, userId);
+    const rawPosts = await feedRepo.getFeed(userId); // получаем сырые данные ленты пользователя из базы данных, 
+    // которые содержат только идентификаторы постов и их авторов, без полной информации о постах
+    const data = await postService.hydratePosts(rawPosts, userId); // преобразуем сырые данные ленты в полные данные постов, 
+    // включая информацию о постах, авторах, комментариях и т.д.
 
     if (redisClient && redisClient.isOpen) {
         try {
@@ -35,7 +38,8 @@ async function getFeed(userId) {
 
     return data;
 }
-
+// инвалидируем кэш ленты пользователя в Redis, чтобы при следующем запросе ленты пользователя данные были получены из базы данных, а не из кэша
+// это нужно, например, при обновлении профиля пользователя, чтобы изменения отразились в его ленте и ленте его подписчиков
 async function invalidateFeed(userId) {
     const cacheKey = `feed:${userId}`;
     if (redisClient && redisClient.isOpen) {

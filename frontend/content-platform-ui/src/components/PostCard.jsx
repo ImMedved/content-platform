@@ -5,7 +5,7 @@ Post card
 import { Link, useLocation } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import CommentItem from "./CommentItem";
-import { createComment, deleteComment, getComments } from "../api/comments";
+import { createComment, getComments } from "../api/comments";
 import { addReaction, getReactionUsers, getReactions, removeReaction } from "../api/reactions";
 import { getPost, purchasePost } from "../api/post";
 import { getApiErrorMessage } from "../api/response";
@@ -154,20 +154,6 @@ function PostCard({
             setReactionError(getApiErrorMessage(err));
         } finally {
             setReactionLoading(false);
-        }
-    }
-
-    async function handleDeleteComment(commentId) {
-        setCommentLoading(true);
-        setCommentError("");
-
-        try {
-            await deleteComment(commentId);
-            await loadComments();
-        } catch (err) {
-            setCommentError(getApiErrorMessage(err));
-        } finally {
-            setCommentLoading(false);
         }
     }
 
@@ -408,23 +394,90 @@ function PostCard({
                                 <CommentItem
                                     key={comment.id}
                                     comment={comment}
-                                    actions={
-                                        Number(user?.id) === Number(comment.author_id) ? (
-                                            <button
-                                                className="btn btn--danger"
-                                                onClick={() => handleDeleteComment(comment.id)}
-                                                disabled={commentLoading}
-                                            >
-                                                Delete
-                                            </button>
-                                        ) : null
-                                    }
+                                    actions={null}
                                 />
                             ))}
                         </div>
                     ) : (
                         <div className="muted-box">No comments yet.</div>
                     )}
+
+                    {/*
+                    Ready-to-enable comment moderation controls.
+                    Backend and API hooks already exist:
+                    - PUT /api/v1/comments/:id
+                    - DELETE /api/v1/comments/:id
+                    Deletion now supports both:
+                    - the comment author
+                    - the post author
+                    Uncomment the state/handlers below together with the actions block if you want to expose it.
+
+                    const [editingCommentId, setEditingCommentId] = useState(null);
+                    const [editingCommentText, setEditingCommentText] = useState("");
+
+                    async function handleDeleteComment(commentId) {
+                        setCommentLoading(true);
+                        setCommentError("");
+
+                        try {
+                            await deleteComment(commentId);
+                            await loadComments();
+                        } catch (err) {
+                            setCommentError(getApiErrorMessage(err));
+                        } finally {
+                            setCommentLoading(false);
+                        }
+                    }
+
+                    async function handleSaveCommentEdit(commentId) {
+                        setCommentLoading(true);
+                        setCommentError("");
+
+                        try {
+                            await updateComment(commentId, editingCommentText);
+                            setEditingCommentId(null);
+                            setEditingCommentText("");
+                            await loadComments();
+                        } catch (err) {
+                            setCommentError(getApiErrorMessage(err));
+                        } finally {
+                            setCommentLoading(false);
+                        }
+                    }
+
+                    const canDeleteComment =
+                        Number(user?.id) === Number(comment.author_id) ||
+                        Number(user?.id) === Number(currentPost?.author_id);
+
+                    const canEditComment = Number(user?.id) === Number(comment.author_id);
+
+                    actions={
+                        <div className="comment-item__actions">
+                            {canEditComment && (
+                                <button
+                                    className="btn btn--secondary"
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingCommentId(comment.id);
+                                        setEditingCommentText(comment.content || "");
+                                    }}
+                                >
+                                    Edit
+                                </button>
+                            )}
+                            {canDeleteComment && (
+                                <button
+                                    className="btn btn--danger"
+                                    type="button"
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    disabled={commentLoading}
+                                >
+                                    Delete
+                                </button>
+                            )}
+                        </div>
+                    }
+                    */}
 
                     {commentError && <div className="muted-box">{commentError}</div>}
 
