@@ -8,6 +8,7 @@ FRONTEND_DIR="$ROOT_DIR/frontend/content-platform-ui"
 RUN_DIR="$ROOT_DIR/.deploy/run"
 LOG_DIR="$ROOT_DIR/.deploy/logs"
 PID_FILE="$RUN_DIR/backend.pid"
+PGID_FILE="$RUN_DIR/backend.pgid"
 BUILD_MARKER="$RUN_DIR/last-build.ok"
 ACTION="${1:-deploy}"
 MODE_FLAG="${2:-}"
@@ -89,35 +90,55 @@ build_frontend() {
     date '+%Y-%m-%d %H:%M:%S' > "$BUILD_MARKER"
 }
 
+process_group_is_running() {
+    [[ -f "$PGID_FILE" ]] || return 1
+
+    local pgid
+    pgid="$(cat "$PGID_FILE" 2>/dev/null || true)"
+
+    [[ -n "$pgid" ]] || return 1
+    pgrep -g "$pgid" >/dev/null 2>&1
+}
+
 is_running() {
-    [[ -f "$PID_FILE" ]] || return 1
-    local pid
-    pid="$(cat "$PID_FILE")"
-    [[ -n "$pid" ]] && kill -0 "$pid" >/dev/null 2>&1
+  process_group_is_running
 }
 
 stop_backend() {
     if ! is_running; then
-        rm -f "$PID_FILE"
+        rm -f "$PID_FILE" "$PGID_FILE"
         log "Backend is not running"
         return
     fi
 
-    local pid
-    pid="$(cat "$PID_FILE")"
-    log "Stopping backend process $pid"
-    kill "$pid"
+    local pgid
+    pgid="$(cat "$PGID_FILE")"
+
+    log "Stopping backend process group $pgid"
+    kill -TERM "-$pgid" >/dev/null 2>&1 || true
 
     for _ in {1..20}; do
-        if ! kill -0 "$pid" >/dev/null 2>&1; then
-            rm -f "$PID_FILE"
+        if ! process_group_is_running; then
+            rm -f "$PID_FILE" "$PGID_FILE"
             log "Backend stopped"
             return
         fi
         sleep 1
     done
 
-    echo "Backend did not stop gracefully. Kill it manually: $pid" >&2
+    log "Backend did not stop gracefully, killing process group $pgid"
+    kill -KILL "-$pgid" >/dev/null 2>&1 || true
+
+    for _ in {1..10}; do
+        if ! process_group_is_running; then
+            rm -f "$PID_FILE" "$PGID_FILE"
+            log "Backend killed"
+            return
+        fi
+        sleep 1
+    done
+
+    echo "Backend process group is still alive: $pgid" >&2
     exit 1
 }
 
@@ -140,8 +161,16 @@ start_backend() {
     log "Starting backend on port $port"
     (
         cd "$BACKEND_DIR"
-        with_db_only_env nohup env NODE_ENV=production npm start >>"$LOG_DIR/backend.log" 2>&1 &
-        echo $! > "$PID_FILE"
+
+        if [[ "$DB_ONLY_MODE" -eq 1 ]]; then
+            nohup setsid env DB_ONLY=1 NODE_ENV=production npm start >>"$LOG_DIR/backend.log" 2>&1 &
+        else
+            nohup setsid env NODE_ENV=production npm start >>"$LOG_DIR/backend.log" 2>&1 &
+        fi
+
+        pid="$!"
+        echo "$pid" > "$PID_FILE"
+        echo "$pid" > "$PGID_FILE"
     )
 
     for _ in {1..30}; do
@@ -160,6 +189,8 @@ deploy() {
     require_command node
     require_command npm
     require_command curl
+    require_command setsid
+    require_command pgrep
     ensure_backend_env
     ensure_dirs
     stop_backend
@@ -195,9 +226,12 @@ case "$ACTION" in
         ;;
     start)
         require_command curl
+        require_command setsid
+        require_command pgrep
         start_backend
         ;;
     stop)
+        require_command pgrep
         stop_backend
         ;;
     *)

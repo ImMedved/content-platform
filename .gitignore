@@ -1,3 +1,6 @@
+.deploy/
+backend/coverage/
+backend/uploads/
 backend/node_modules/
 backend/.env
 backend/.env.*
